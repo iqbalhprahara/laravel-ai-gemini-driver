@@ -1,0 +1,27 @@
+{
+    "candidates": [
+        {
+            "content": {
+                "parts": [
+                    {"text": "Let me check the weather for you."},
+                    {
+                        "functionCall": {
+                            "name": "get_weather",
+                            "args": {
+                                "city": "Paris"
+                            }
+                        }
+                    }
+                ],
+                "role": "model"
+            },
+            "finishReason": "STOP"
+        }
+    ],
+    "usageMetadata": {
+        "promptTokenCount": 30,
+        "candidatesTokenCount": 20,
+        "totalTokenCount": 50
+    },
+    "modelVersion": "gemini-2.5-flash"
+}

@@ -1,0 +1,27 @@
+{
+    "candidates": [
+        {
+            "content": {
+                "parts": [
+                    {
+                        "functionCall": {
+                            "name": "get_weather",
+                            "args": {
+                                "city": "London",
+                                "unit": "celsius"
+                            }
+                        }
+                    }
+                ],
+                "role": "model"
+            },
+            "finishReason": "STOP"
+        }
+    ],
+    "usageMetadata": {
+        "promptTokenCount": 25,
+        "candidatesTokenCount": 15,
+        "totalTokenCount": 40
+    },
+    "modelVersion": "gemini-2.0-flash"
+}

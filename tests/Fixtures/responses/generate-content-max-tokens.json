@@ -1,0 +1,19 @@
+{
+    "candidates": [
+        {
+            "content": {
+                "parts": [
+                    {"text": "This response was truncated because it reached the maximum token"}
+                ],
+                "role": "model"
+            },
+            "finishReason": "MAX_TOKENS"
+        }
+    ],
+    "usageMetadata": {
+        "promptTokenCount": 10,
+        "candidatesTokenCount": 8192,
+        "totalTokenCount": 8202
+    },
+    "modelVersion": "gemini-2.0-flash"
+}

@@ -1,0 +1,29 @@
+{
+    "candidates": [
+        {
+            "content": {
+                "parts": [
+                    {"text": "Hello! How can I help you today?"}
+                ],
+                "role": "model"
+            },
+            "finishReason": "STOP",
+            "safetyRatings": [
+                {
+                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    "probability": "NEGLIGIBLE"
+                },
+                {
+                    "category": "HARM_CATEGORY_HATE_SPEECH",
+                    "probability": "NEGLIGIBLE"
+                }
+            ]
+        }
+    ],
+    "usageMetadata": {
+        "promptTokenCount": 10,
+        "candidatesTokenCount": 25,
+        "totalTokenCount": 35
+    },
+    "modelVersion": "gemini-2.0-flash"
+}
