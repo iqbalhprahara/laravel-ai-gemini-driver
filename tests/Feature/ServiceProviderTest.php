@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\ServiceProvider;
 use Ursamajeur\CloudCodePA\CloudCodeServiceProvider;
+use Ursamajeur\CloudCodePA\Config\ModelRegistry;
 
 it('registers the service provider via auto-discovery config', function (): void {
     // Arrange & Act — provider is loaded by TestCase::getPackageProviders()
@@ -82,6 +83,21 @@ it('transport timeout values are integers', function (): void {
     expect(config('cloudcode-pa.transport.timeout'))->toBeInt()
         ->and(config('cloudcode-pa.transport.stream_timeout'))->toBeInt()
         ->and(config('cloudcode-pa.transport.connect_timeout'))->toBeInt();
+});
+
+it('resolves ModelRegistry singleton from container with config models', function (): void {
+    $registry = $this->app->make(ModelRegistry::class);
+
+    expect($registry)->toBeInstanceOf(ModelRegistry::class)
+        ->and($registry->has('gemini-2.0-flash'))->toBeTrue()
+        ->and($registry->all())->toBe(config('cloudcode-pa.models'));
+});
+
+it('returns same ModelRegistry instance on repeated resolution', function (): void {
+    $a = $this->app->make(ModelRegistry::class);
+    $b = $this->app->make(ModelRegistry::class);
+
+    expect($a)->toBe($b);
 });
 
 it('all config keys are accessible via dot notation', function (): void {

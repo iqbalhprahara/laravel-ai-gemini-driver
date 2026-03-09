@@ -65,8 +65,9 @@ return [
     | Models
     |--------------------------------------------------------------------------
     |
-    | Model registry mapping model aliases to their API identifiers.
-    | Stub — full registry populated in Story 1.2 (ModelRegistry).
+    | Model registry mapping friendly aliases to bare v1internal model names.
+    | Add new models here — no code changes required. The ModelRegistry
+    | singleton reads this array at boot and resolves aliases at runtime.
     |
     */
 
