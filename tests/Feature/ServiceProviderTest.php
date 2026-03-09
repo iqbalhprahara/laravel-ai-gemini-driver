@@ -36,7 +36,7 @@ it('publishes config with the correct tag', function (): void {
 it('config contains auth group with expected keys', function (): void {
     expect(config('cloudcode-pa.auth'))
         ->toBeArray()
-        ->toHaveKeys(['credentials_path', 'client_id', 'client_secret', 'redirect_uri']);
+        ->toHaveKeys(['credentials_path', 'client_id', 'client_secret']);
 });
 
 it('config contains transport group with expected keys', function (): void {
@@ -60,12 +60,9 @@ it('config debug key defaults to false', function (): void {
 });
 
 it('provides sensible default values for all config keys', function (): void {
-    $home = rtrim((string) (getenv('HOME') ?: ($_SERVER['HOME'] ?? '~')), '/');
-
-    expect(config('cloudcode-pa.auth.credentials_path'))->toBe($home.'/.gemini/oauth_creds.json')
-        ->and(config('cloudcode-pa.auth.client_id'))->toBe('')
-        ->and(config('cloudcode-pa.auth.client_secret'))->toBe('')
-        ->and(config('cloudcode-pa.auth.redirect_uri'))->toBe('http://localhost')
+    expect(config('cloudcode-pa.auth.credentials_path'))->toBe(storage_path('cloudcode-pa/oauth_creds.json'))
+        ->and(config('cloudcode-pa.auth.client_id'))->toBeString()
+        ->and(config('cloudcode-pa.auth.client_secret'))->toBeString()
         ->and(config('cloudcode-pa.transport.base_url'))->toBe('https://cloudcode-pa.googleapis.com/v1internal')
         ->and(config('cloudcode-pa.transport.timeout'))->toBe(30)
         ->and(config('cloudcode-pa.transport.stream_timeout'))->toBe(120)
@@ -114,7 +111,6 @@ it('all config keys are accessible via dot notation', function (): void {
         'cloudcode-pa.auth.credentials_path',
         'cloudcode-pa.auth.client_id',
         'cloudcode-pa.auth.client_secret',
-        'cloudcode-pa.auth.redirect_uri',
         'cloudcode-pa.transport.base_url',
         'cloudcode-pa.transport.timeout',
         'cloudcode-pa.transport.stream_timeout',

@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Ursamajeur\CloudCodePA;
 
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Ai\Ai;
+use Ursamajeur\CloudCodePA\Auth\CloudCodeAuthenticator;
+use Ursamajeur\CloudCodePA\Auth\CredentialStore;
 use Ursamajeur\CloudCodePA\Config\ModelRegistry;
+use Ursamajeur\CloudCodePA\Contracts\CredentialStoreInterface;
 use Ursamajeur\CloudCodePA\Gateway\CloudCodeGateway;
 
 final class CloudCodeServiceProvider extends ServiceProvider
@@ -26,6 +30,23 @@ final class CloudCodeServiceProvider extends ServiceProvider
             ModelRegistry::class,
             fn () => new ModelRegistry(config('cloudcode-pa.models', [])),
         );
+
+        $this->app->singleton(
+            CredentialStoreInterface::class,
+            fn () => new CredentialStore(
+                (string) config('cloudcode-pa.auth.credentials_path'),
+            ),
+        );
+
+        $this->app->singleton(
+            CloudCodeAuthenticator::class,
+            fn () => new CloudCodeAuthenticator(
+                credentialStore: $this->app->make(CredentialStoreInterface::class),
+                clientId: (string) config('cloudcode-pa.auth.client_id', ''),
+                clientSecret: (string) config('cloudcode-pa.auth.client_secret', ''),
+                debug: (bool) config('cloudcode-pa.debug', false),
+            ),
+        );
     }
 
     /**
@@ -40,6 +61,14 @@ final class CloudCodeServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/cloudcode-pa.php' => config_path('cloudcode-pa.php'),
             ], 'cloudcode-pa-config');
+        }
+
+        // Ensure storage directory exists for credential files
+        $credentialsPath = (string) config('cloudcode-pa.auth.credentials_path', '');
+        $credentialsDir = dirname($credentialsPath);
+
+        if ($credentialsDir !== '' && $credentialsDir !== '.' && ! File::isDirectory($credentialsDir)) {
+            File::makeDirectory($credentialsDir, 0700, true, true);
         }
 
         // Register with laravel/ai SDK
