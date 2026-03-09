@@ -20,7 +20,10 @@ return [
 
     'auth' => [
         // Path to the OAuth credentials JSON file
-        'credentials_path' => env('CLOUDCODE_PA_CREDENTIALS_PATH', '~/.gemini/oauth_creds.json'),
+        'credentials_path' => env(
+            'CLOUDCODE_PA_CREDENTIALS_PATH',
+            rtrim((string) (getenv('HOME') ?: ($_SERVER['HOME'] ?? '~')), '/').'/.gemini/oauth_creds.json',
+        ),
 
         // Google OAuth client ID for PKCE flow
         'client_id' => env('CLOUDCODE_PA_CLIENT_ID', ''),
@@ -68,7 +71,19 @@ return [
     */
 
     'models' => [
-        // Populated by Story 1.2
+        // Gemini 3.x — latest generation (GeminiCLI path)
+        'gemini-3.1-pro-high' => 'gemini-3.1-pro-high',
+        'gemini-3-pro' => 'gemini-3-pro',
+        'gemini-3-flash' => 'gemini-3-flash',
+
+        // Gemini 2.5 — previous generation
+        'gemini-2.5-pro' => 'gemini-2.5-pro',
+        'gemini-2.5-flash' => 'gemini-2.5-flash',
+
+        // Gemini 2.0 — stable workhorses
+        'gemini-2.0-flash' => 'gemini-2.0-flash',
+        'gemini-2.0-flash-lite' => 'gemini-2.0-flash-lite',
+        'gemini-2.0-flash-thinking' => 'gemini-2.0-flash-thinking',
     ],
 
     /*

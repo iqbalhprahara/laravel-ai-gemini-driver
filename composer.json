@@ -28,10 +28,12 @@
         "saloonphp/saloon": "^3.0"
     },
     "require-dev": {
+        "larastan/larastan": "^3.0",
         "laravel/boost": "^1.0|^2.0",
         "laravel/pint": "^1.27.0",
         "orchestra/testbench": "^9.0|^10.0|^11.0",
         "pestphp/pest": "^2.0|^3.0|^4.0",
+        "pestphp/pest-plugin-arch": "^2.0|^3.0|^4.0",
         "pestphp/pest-plugin-laravel": "^2.0|^3.0|^4.0",
         "phpstan/phpstan": "^2.0"
     },
@@ -59,7 +61,7 @@
         ],
         "test": "pest",
         "test:lint": "pint --test --format agent",
-        "test:types": "phpstan",
+        "test:types": "phpstan --memory-limit=-1",
         "check": [
             "@composer lint",
             "@composer test"

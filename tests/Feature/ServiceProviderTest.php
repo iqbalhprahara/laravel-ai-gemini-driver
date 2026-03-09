@@ -53,7 +53,9 @@ it('config debug key defaults to false', function (): void {
 });
 
 it('provides sensible default values for all config keys', function (): void {
-    expect(config('cloudcode-pa.auth.credentials_path'))->toBe('~/.gemini/oauth_creds.json')
+    $home = rtrim((string) (getenv('HOME') ?: ($_SERVER['HOME'] ?? '~')), '/');
+
+    expect(config('cloudcode-pa.auth.credentials_path'))->toBe($home.'/.gemini/oauth_creds.json')
         ->and(config('cloudcode-pa.auth.client_id'))->toBe('')
         ->and(config('cloudcode-pa.auth.client_secret'))->toBe('')
         ->and(config('cloudcode-pa.auth.redirect_uri'))->toBe('http://localhost')

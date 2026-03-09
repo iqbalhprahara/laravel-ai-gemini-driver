@@ -1,4 +1,22 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
 parameters:
     level: 8
     paths:
         - src
+        - tests
+    ignoreErrors:
+        # Pest arch() tests use dynamic method chaining that PHPStan cannot resolve
+        -
+            identifier: method.notFound
+            path: tests/Arch/*
+        # Pest test closures use $this->app via Orchestra TestCase magic
+        -
+            identifier: property.notFound
+            path: tests/Feature/*
+        # Pest Expectation->not is a magic property
+        -
+            identifier: property.notFound
+            path: tests/Unit/*
+            reportUnmatched: false

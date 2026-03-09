@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ursamajeur\CloudCodePA;
 
 use Illuminate\Support\ServiceProvider;
+use Ursamajeur\CloudCodePA\Config\ModelRegistry;
 
 final class CloudCodeServiceProvider extends ServiceProvider
 {
@@ -16,6 +17,11 @@ final class CloudCodeServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__.'/../config/cloudcode-pa.php',
             'cloudcode-pa',
+        );
+
+        $this->app->singleton(
+            ModelRegistry::class,
+            fn () => new ModelRegistry(config('cloudcode-pa.models', [])),
         );
     }
 
