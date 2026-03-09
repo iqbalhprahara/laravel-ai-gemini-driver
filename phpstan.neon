@@ -20,20 +20,54 @@ parameters:
             identifier: property.notFound
             path: tests/Unit/*
             reportUnmatched: false
-        # Mockery mocks return MockInterface which PHPStan cannot match to interface types
-        -
-            identifier: argument.type
-            path: tests/*
-        # Mockery expectation chains (shouldReceive()->once()->andReturn()) return union types
+        # Mockery expectation chains (shouldReceive()->andReturn()) return union types
         -
             identifier: method.notFound
             path: tests/Feature/*
-        # Log::spy() adds shouldHaveReceived/shouldNotHaveReceived which PHPStan can't resolve
+            reportUnmatched: false
+        # Mockery in test helpers (GatewayFactory)
         -
-            identifier: staticMethod.notFound
-            path: tests/Feature/*
-        # json_decode with file_get_contents in test assertions
+            identifier: method.notFound
+            path: tests/Helpers/*
+            reportUnmatched: false
+        # Mockery mocks return MockInterface — type mismatch when passed as typed parameter
+        # Scoped to specific directories that use Mockery mocks
         -
             identifier: argument.type
-            path: tests/Unit/Auth/CredentialStoreTest.php
+            path: tests/Helpers/GatewayFactory.php
+            reportUnmatched: false
+        -
+            identifier: argument.type
+            path: tests/Feature/Transport/*
+            reportUnmatched: false
+        -
+            identifier: argument.type
+            path: tests/Feature/Auth/*
+            reportUnmatched: false
+        -
+            identifier: argument.type
+            path: tests/Unit/Auth/*
+            reportUnmatched: false
+        -
+            identifier: argument.type
+            path: tests/Unit/Parsing/ResponseMapperTest.php
+            reportUnmatched: false
+        # Log::shouldReceive/shouldHaveReceived/shouldNotHaveReceived — Mockery facade spying
+        -
+            identifier: staticMethod.notFound
+            path: tests/Feature/ErrorHandlingTest.php
+            reportUnmatched: false
+        -
+            identifier: staticMethod.notFound
+            path: tests/Feature/Auth/*
+            reportUnmatched: false
+        # Saloon MockClient::getLastPendingRequest() returns nullable
+        -
+            identifier: method.nonObject
+            path: tests/Feature/*
+            reportUnmatched: false
+        # Test helper function return type
+        -
+            identifier: missingType.iterableValue
+            path: tests/*
             reportUnmatched: false
