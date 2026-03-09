@@ -9,7 +9,8 @@ arch('all src classes use strict types')
 arch('all src classes are final')
     ->expect('Ursamajeur\CloudCodePA')
     ->toBeFinal()
-    ->ignoring('Ursamajeur\CloudCodePA\Exceptions');
+    ->ignoring('Ursamajeur\CloudCodePA\Exceptions')
+    ->ignoring('Ursamajeur\CloudCodePA\Contracts');
 
 arch('src classes do not use env() directly')
     ->expect('Ursamajeur\CloudCodePA')
@@ -27,3 +28,7 @@ arch('exceptions extend CloudCodeException')
 arch('config classes do not depend on transport')
     ->expect('Ursamajeur\CloudCodePA\Config')
     ->not->toUse('Ursamajeur\CloudCodePA\Transport');
+
+arch('src classes do not use Laravel Http facade — use Saloon')
+    ->expect('Ursamajeur\CloudCodePA')
+    ->not->toUse(['Illuminate\Support\Facades\Http']);
