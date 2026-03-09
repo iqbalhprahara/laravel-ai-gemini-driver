@@ -10,29 +10,28 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configuration for OAuth2 credential management. The credentials_path
-    | points to the JSON file containing OAuth tokens — defaults to the same
-    | location Gemini CLI uses (~/.gemini/oauth_creds.json).
+    | points to the JSON file containing OAuth tokens — defaults to
+    | storage/cloudcode-pa/oauth_creds.json (project-local).
     |
-    | client_id and client_secret are Google's CLI OAuth credentials used for
-    | the PKCE authorization flow when acquiring fresh tokens.
+    | client_id and client_secret are Google's PUBLIC CLI OAuth credentials
+    | (same as Gemini CLI). Used by CloudCodeAuthenticator for token refresh.
+    | These are NOT user secrets — they are embedded in Google's CLI source.
     |
     */
 
     'auth' => [
-        // Path to the OAuth credentials JSON file
+        // Path to the OAuth credentials JSON file (project-local)
         'credentials_path' => env(
             'CLOUDCODE_PA_CREDENTIALS_PATH',
-            rtrim((string) (getenv('HOME') ?: ($_SERVER['HOME'] ?? '~')), '/').'/.gemini/oauth_creds.json',
+            storage_path('cloudcode-pa/oauth_creds.json'),
         ),
 
-        // Google OAuth client ID for PKCE flow
+        // Google's public CLI OAuth client ID (from @google/gemini-cli-core)
         'client_id' => env('CLOUDCODE_PA_CLIENT_ID', ''),
 
-        // Google OAuth client secret for PKCE flow
+        // Google's public CLI OAuth client secret (from @google/gemini-cli-core)
         'client_secret' => env('CLOUDCODE_PA_CLIENT_SECRET', ''),
 
-        // OAuth redirect URI — localhost for CLI-based auth
-        'redirect_uri' => env('CLOUDCODE_PA_REDIRECT_URI', 'http://localhost'),
     ],
 
     /*
