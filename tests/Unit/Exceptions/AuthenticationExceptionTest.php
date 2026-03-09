@@ -14,13 +14,13 @@ it('extends CloudCodeException', function (): void {
 });
 
 // AC #2, #3 — tokenExpired factory
-it('creates exception via tokenExpired factory with re-auth instructions', function (): void {
+it('creates exception via tokenExpired factory with provisioning instructions', function (): void {
     $exception = AuthenticationException::tokenExpired();
 
     expect($exception)
         ->toBeInstanceOf(AuthenticationException::class)
         ->and($exception->getMessage())->toContain('expired')
-        ->and($exception->getMessage())->toContain('PKCE');
+        ->and($exception->getMessage())->toContain('credential file');
 });
 
 // AC #3 — credentialsNotFound factory
@@ -31,7 +31,7 @@ it('creates exception via credentialsNotFound factory with path', function (): v
     expect($exception)
         ->toBeInstanceOf(AuthenticationException::class)
         ->and($exception->getMessage())->toContain($path)
-        ->and($exception->getMessage())->toContain('PKCE');
+        ->and($exception->getMessage())->toContain('credential');
 });
 
 // AC #3 — refreshFailed factory
@@ -41,7 +41,7 @@ it('creates exception via refreshFailed factory', function (): void {
     expect($exception)
         ->toBeInstanceOf(AuthenticationException::class)
         ->and($exception->getMessage())->toContain('token revoked')
-        ->and($exception->getMessage())->toContain('PKCE');
+        ->and($exception->getMessage())->toContain('credential file');
 });
 
 it('creates exception via refreshFailed factory without reason', function (): void {
@@ -49,7 +49,7 @@ it('creates exception via refreshFailed factory without reason', function (): vo
 
     expect($exception)
         ->toBeInstanceOf(AuthenticationException::class)
-        ->and($exception->getMessage())->toContain('PKCE');
+        ->and($exception->getMessage())->toContain('credential file');
 });
 
 // AC #3 — invalidCredentials factory
@@ -58,7 +58,7 @@ it('creates exception via invalidCredentials factory', function (): void {
 
     expect($exception)
         ->toBeInstanceOf(AuthenticationException::class)
-        ->and($exception->getMessage())->toContain('PKCE');
+        ->and($exception->getMessage())->toContain('credential');
 });
 
 // AC #4 — No tokens in messages

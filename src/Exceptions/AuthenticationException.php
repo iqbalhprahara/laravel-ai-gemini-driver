@@ -9,14 +9,14 @@ class AuthenticationException extends CloudCodeException
     public static function tokenExpired(): self
     {
         return new self(
-            'Access token has expired. Run the PKCE authentication flow to obtain new credentials.'
+            'Access token has expired. Please provision a fresh credential file at the configured credentials_path.'
         );
     }
 
     public static function credentialsNotFound(string $path): self
     {
         return new self(
-            "Credential file not found at: {$path}. Run the PKCE authentication flow to create credentials."
+            "Credential file not found at: {$path}. Please provision an OAuth credential JSON file at this path."
         );
     }
 
@@ -29,14 +29,14 @@ class AuthenticationException extends CloudCodeException
         }
 
         return new self(
-            "{$message} Run the PKCE authentication flow to re-authenticate."
+            "{$message} Please provision a fresh credential file at the configured credentials_path."
         );
     }
 
     public static function invalidCredentials(): self
     {
         return new self(
-            'Credential file is malformed or contains invalid data. Run the PKCE authentication flow to create new credentials.'
+            'Credential file is malformed or contains invalid data. Please provision a valid OAuth credential JSON file.'
         );
     }
 }
