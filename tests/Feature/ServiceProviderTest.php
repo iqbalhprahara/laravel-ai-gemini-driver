@@ -49,6 +49,12 @@ it('config contains models group as array', function (): void {
     expect(config('cloudcode-pa.models'))->toBeArray();
 });
 
+it('config contains model alias keys with string defaults', function (): void {
+    expect(config('cloudcode-pa.default_model'))->toBeString()
+        ->and(config('cloudcode-pa.cheapest_model'))->toBeString()
+        ->and(config('cloudcode-pa.smartest_model'))->toBeString();
+});
+
 it('config debug key defaults to false', function (): void {
     expect(config('cloudcode-pa.debug'))->toBeFalse();
 });
@@ -64,6 +70,9 @@ it('provides sensible default values for all config keys', function (): void {
         ->and(config('cloudcode-pa.transport.timeout'))->toBe(30)
         ->and(config('cloudcode-pa.transport.stream_timeout'))->toBe(120)
         ->and(config('cloudcode-pa.transport.connect_timeout'))->toBe(10)
+        ->and(config('cloudcode-pa.default_model'))->toBe('gemini-2.0-flash')
+        ->and(config('cloudcode-pa.cheapest_model'))->toBe('gemini-2.0-flash-lite')
+        ->and(config('cloudcode-pa.smartest_model'))->toBe('gemini-3.1-pro-high')
         ->and(config('cloudcode-pa.debug'))->toBeFalse();
 });
 
@@ -110,6 +119,9 @@ it('all config keys are accessible via dot notation', function (): void {
         'cloudcode-pa.transport.timeout',
         'cloudcode-pa.transport.stream_timeout',
         'cloudcode-pa.transport.connect_timeout',
+        'cloudcode-pa.default_model',
+        'cloudcode-pa.cheapest_model',
+        'cloudcode-pa.smartest_model',
         'cloudcode-pa.models',
         'cloudcode-pa.debug',
     ];

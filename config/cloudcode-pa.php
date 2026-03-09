@@ -71,6 +71,11 @@ return [
     |
     */
 
+    // Default model aliases for laravel/ai Provider methods
+    'default_model' => env('CLOUDCODE_PA_DEFAULT_MODEL', 'gemini-2.0-flash'),
+    'cheapest_model' => env('CLOUDCODE_PA_CHEAPEST_MODEL', 'gemini-2.0-flash-lite'),
+    'smartest_model' => env('CLOUDCODE_PA_SMARTEST_MODEL', 'gemini-3.1-pro-high'),
+
     'models' => [
         // Gemini 3.x — latest generation (GeminiCLI path)
         'gemini-3.1-pro-high' => 'gemini-3.1-pro-high',

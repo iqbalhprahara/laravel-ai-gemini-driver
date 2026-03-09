@@ -7,9 +7,8 @@ namespace Ursamajeur\CloudCodePA;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Ai\Ai;
-use Laravel\Ai\Gateway\Prism\PrismGateway;
-use Prism\Prism\PrismManager;
 use Ursamajeur\CloudCodePA\Config\ModelRegistry;
+use Ursamajeur\CloudCodePA\Gateway\CloudCodeGateway;
 
 final class CloudCodeServiceProvider extends ServiceProvider
 {
@@ -32,9 +31,8 @@ final class CloudCodeServiceProvider extends ServiceProvider
     /**
      * Bootstrap package services.
      *
-     * Registers 'cloudcode-pa' with laravel/ai and Prism so consumers can use:
+     * Registers 'cloudcode-pa' with laravel/ai so consumers can use:
      *   Ai::agent()->using('cloudcode-pa', ...)   — via CloudCodeAiProvider
-     *   Prism::text()->using('cloudcode-pa', ...) — via CloudCodePrismProvider
      */
     public function boot(): void
     {
@@ -44,23 +42,19 @@ final class CloudCodeServiceProvider extends ServiceProvider
             ], 'cloudcode-pa-config');
         }
 
-        // Register with laravel/ai SDK (AC #1)
+        // Register with laravel/ai SDK
+        // Merge package defaults as base so default_model/cheapest_model/smartest_model
+        // are always available; ai.php provider overrides take precedence.
         Ai::extend('cloudcode-pa', function ($app, $config): CloudCodeAiProvider {
             $events = $app->make(Dispatcher::class);
+            /** @var array<string, mixed> $packageConfig */
+            $packageConfig = config('cloudcode-pa', []);
 
             return new CloudCodeAiProvider(
-                gateway: new PrismGateway($events),
-                config: $config,
+                gateway: new CloudCodeGateway,
+                config: array_merge($packageConfig, $config),
                 events: $events,
             );
         });
-
-        // Register with Prism directly (AC #2)
-        $this->app->make(PrismManager::class)->extend(
-            'cloudcode-pa',
-            fn ($app, $config): CloudCodePrismProvider => new CloudCodePrismProvider(
-                config: $config,
-            ),
-        );
     }
 }

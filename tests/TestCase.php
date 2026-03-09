@@ -6,7 +6,6 @@ namespace Ursamajeur\CloudCodePA\Tests;
 
 use Laravel\Ai\AiServiceProvider;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
-use Prism\Prism\PrismServiceProvider;
 use Ursamajeur\CloudCodePA\CloudCodeServiceProvider;
 
 abstract class TestCase extends OrchestraTestCase
@@ -16,7 +15,6 @@ abstract class TestCase extends OrchestraTestCase
     {
         return [
             AiServiceProvider::class,
-            PrismServiceProvider::class,
             CloudCodeServiceProvider::class,
         ];
     }

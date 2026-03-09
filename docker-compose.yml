@@ -1,6 +1,6 @@
 services:
   app:
-    image: laravel-ai-gemini-driver/app:local
+    image: ursamajeur/laravel-ai-gemini-driver-app:local
     build:
       context: ./docker/app
       dockerfile: Dockerfile

@@ -11,11 +11,11 @@ use Laravel\Ai\Providers\Concerns\StreamsText;
 use Laravel\Ai\Providers\Provider;
 
 /**
- * Laravel AI SDK provider stub for the CloudCode-PA v1internal API.
+ * Laravel AI SDK provider for the CloudCode-PA v1internal API.
  *
- * Registers 'cloudcode-pa' with Ai::extend(). Delegates to
- * CloudCodePrismProvider via PrismGateway (two-layer canonical pattern).
- * Full text/stream wiring is implemented in Epic 3.
+ * Registered via Ai::extend('cloudcode-pa'). Delegates text generation
+ * to CloudCodeGateway (direct gateway pattern).
+ * Full Saloon-based transport is wired in Epic 3.
  */
 final class CloudCodeAiProvider extends Provider implements TextProvider
 {
@@ -28,7 +28,7 @@ final class CloudCodeAiProvider extends Provider implements TextProvider
      */
     public function defaultTextModel(): string
     {
-        return (string) ($this->config['default_model'] ?? 'gemini-2.0-flash');
+        return (string) $this->config['default_model'];
     }
 
     /**
@@ -36,7 +36,7 @@ final class CloudCodeAiProvider extends Provider implements TextProvider
      */
     public function cheapestTextModel(): string
     {
-        return (string) ($this->config['cheapest_model'] ?? 'gemini-2.0-flash-lite');
+        return (string) $this->config['cheapest_model'];
     }
 
     /**
@@ -44,6 +44,6 @@ final class CloudCodeAiProvider extends Provider implements TextProvider
      */
     public function smartestTextModel(): string
     {
-        return (string) ($this->config['smartest_model'] ?? 'gemini-3.1-pro-high');
+        return (string) $this->config['smartest_model'];
     }
 }

@@ -34,4 +34,14 @@ class CloudCodeException extends RuntimeException
             "Unknown model '{$sanitized}'. Available models: {$list}",
         );
     }
+
+    /**
+     * Feature not yet implemented in the current epic.
+     */
+    public static function notImplemented(string $method): self
+    {
+        return new self(
+            "Method {$method} is not yet implemented.",
+        );
+    }
 }

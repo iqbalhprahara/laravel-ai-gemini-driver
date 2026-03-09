@@ -3,12 +3,10 @@
 declare(strict_types=1);
 
 use Laravel\Ai\Ai;
+use Laravel\Ai\Contracts\Gateway\TextGateway;
 use Laravel\Ai\Contracts\Providers\TextProvider;
-use Laravel\Ai\Gateway\Prism\PrismGateway;
-use Prism\Prism\PrismManager;
-use Prism\Prism\Text\Request as TextRequest;
 use Ursamajeur\CloudCodePA\CloudCodeAiProvider;
-use Ursamajeur\CloudCodePA\CloudCodePrismProvider;
+use Ursamajeur\CloudCodePA\Gateway\CloudCodeGateway;
 
 // AC #1 — CloudCodeAiProvider is registered as the laravel/ai provider
 it('Ai::extend cloudcode-pa resolves to CloudCodeAiProvider', function (): void {
@@ -19,59 +17,84 @@ it('Ai::extend cloudcode-pa resolves to CloudCodeAiProvider', function (): void 
     expect($provider)->toBeInstanceOf(CloudCodeAiProvider::class);
 });
 
-// AC #2 — CloudCodePrismProvider is registered via prism-manager
-it('prism-manager resolves cloudcode-pa to CloudCodePrismProvider', function (): void {
-    // Arrange & Act
-    $provider = $this->app->make(PrismManager::class)->resolve('cloudcode-pa');
-
-    // Assert
-    expect($provider)->toBeInstanceOf(CloudCodePrismProvider::class);
-});
-
-// AC #3 — Both providers resolve correctly from the service container
-it('both providers instantiate without errors when config is present', function (): void {
-    // Arrange & Act
-    $aiProvider = Ai::textProvider('cloudcode-pa');
-    $prismProvider = $this->app->make(PrismManager::class)->resolve('cloudcode-pa');
-
-    // Assert
-    expect($aiProvider)
-        ->toBeInstanceOf(CloudCodeAiProvider::class)
-        ->toBeInstanceOf(TextProvider::class)
-        ->and($prismProvider)
-        ->toBeInstanceOf(CloudCodePrismProvider::class);
-});
-
-// AC #4 — Two-layer integration: CloudCodeAiProvider uses PrismGateway (canonical pattern)
-it('CloudCodeAiProvider uses PrismGateway as its text gateway', function (): void {
+// AC #2 — Provider implements TextProvider contract
+it('CloudCodeAiProvider implements TextProvider', function (): void {
     // Arrange & Act
     $provider = Ai::textProvider('cloudcode-pa');
 
-    // Assert — confirms canonical two-layer pattern: AiProvider → PrismGateway → PrismProvider
-    expect($provider)
-        ->toBeInstanceOf(TextProvider::class)
-        ->and($provider->textGateway())
-        ->toBeInstanceOf(PrismGateway::class);
+    // Assert
+    expect($provider)->toBeInstanceOf(TextProvider::class);
 });
 
-// Stub behavior — CloudCodePrismProvider::text() throws until Epic 3
-it('CloudCodePrismProvider text() throws BadMethodCallException', function (): void {
-    // Arrange
-    $provider = $this->app->make(PrismManager::class)->resolve('cloudcode-pa');
-    $request = Mockery::mock(TextRequest::class);
+// AC #3 — Direct gateway pattern: CloudCodeAiProvider uses CloudCodeGateway
+it('CloudCodeAiProvider uses CloudCodeGateway as its text gateway', function (): void {
+    // Arrange & Act
+    $provider = Ai::textProvider('cloudcode-pa');
 
-    // Act & Assert
-    expect(fn () => $provider->text($request))
-        ->toThrow(\BadMethodCallException::class, 'Not yet implemented');
+    // Assert — confirms direct gateway pattern: AiProvider → CloudCodeGateway → Saloon
+    expect($provider->textGateway())
+        ->toBeInstanceOf(TextGateway::class)
+        ->toBeInstanceOf(CloudCodeGateway::class);
 });
 
-// Stub behavior — CloudCodePrismProvider::stream() throws until Epic 3
-it('CloudCodePrismProvider stream() throws BadMethodCallException', function (): void {
-    // Arrange
-    $provider = $this->app->make(PrismManager::class)->resolve('cloudcode-pa');
-    $request = Mockery::mock(TextRequest::class);
+// Stub behavior — gateway throws until Epic 3
+it('CloudCodeGateway generateText throws CloudCodeException stub', function (): void {
+    $gateway = new CloudCodeGateway;
 
-    // Act & Assert
-    expect(fn () => $provider->stream($request))
-        ->toThrow(\BadMethodCallException::class, 'Not yet implemented');
+    expect(fn () => $gateway->generateText(
+        provider: Ai::textProvider('cloudcode-pa'),
+        model: 'gemini-2.0-flash',
+        instructions: null,
+    ))->toThrow(\Ursamajeur\CloudCodePA\Exceptions\CloudCodeException::class, 'generateText()');
+});
+
+it('CloudCodeGateway streamText throws CloudCodeException stub', function (): void {
+    $gateway = new CloudCodeGateway;
+
+    expect(fn () => $gateway->streamText(
+        invocationId: 'test-id',
+        provider: Ai::textProvider('cloudcode-pa'),
+        model: 'gemini-2.0-flash',
+        instructions: null,
+    ))->toThrow(\Ursamajeur\CloudCodePA\Exceptions\CloudCodeException::class, 'streamText()');
+});
+
+// Model method tests — defaults from package config
+it('CloudCodeAiProvider defaultTextModel returns config default', function (): void {
+    // Arrange & Act
+    $provider = Ai::textProvider('cloudcode-pa');
+
+    // Assert — value from config/cloudcode-pa.php default_model key
+    expect($provider->defaultTextModel())->toBe('gemini-2.0-flash');
+});
+
+it('CloudCodeAiProvider cheapestTextModel returns config default', function (): void {
+    // Arrange & Act
+    $provider = Ai::textProvider('cloudcode-pa');
+
+    // Assert
+    expect($provider->cheapestTextModel())->toBe('gemini-2.0-flash-lite');
+});
+
+it('CloudCodeAiProvider smartestTextModel returns config default', function (): void {
+    // Arrange & Act
+    $provider = Ai::textProvider('cloudcode-pa');
+
+    // Assert
+    expect($provider->smartestTextModel())->toBe('gemini-3.1-pro-high');
+});
+
+it('CloudCodeAiProvider model methods reflect config overrides', function (): void {
+    // Arrange
+    config()->set('cloudcode-pa.default_model', 'gemini-3-flash');
+    config()->set('cloudcode-pa.cheapest_model', 'gemini-2.0-flash');
+    config()->set('cloudcode-pa.smartest_model', 'gemini-3-pro');
+
+    // Act — re-resolve provider so it picks up new config
+    $provider = Ai::textProvider('cloudcode-pa');
+
+    // Assert
+    expect($provider->defaultTextModel())->toBe('gemini-3-flash')
+        ->and($provider->cheapestTextModel())->toBe('gemini-2.0-flash')
+        ->and($provider->smartestTextModel())->toBe('gemini-3-pro');
 });
