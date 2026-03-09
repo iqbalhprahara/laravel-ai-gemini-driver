@@ -1,0 +1,21 @@
+services:
+  app:
+    image: laravel-ai-gemini-driver/app:local
+    build:
+      context: ./docker/app
+      dockerfile: Dockerfile
+      target: devcontainer
+      args:
+        WWWUSER: "${WWWUSER:-1000}"
+        WWWGROUP: "${WWWGROUP:-1000}"
+    user: developer
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ~/.claude:/home/developer/.claude
+    stdin_open: true
+    tty: true
+
+networks:
+  default:
+    driver: bridge
