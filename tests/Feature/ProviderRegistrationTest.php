@@ -37,23 +37,22 @@ it('CloudCodeAiProvider uses CloudCodeGateway as its text gateway', function ():
         ->toBeInstanceOf(CloudCodeGateway::class);
 });
 
-// Stub behavior — gateway throws until Epic 3
-it('CloudCodeGateway generateText throws CloudCodeException stub', function (): void {
-    $gateway = new CloudCodeGateway;
+// Gateway obtained from provider has correct type
+it('CloudCodeGateway is accessible from resolved provider', function (): void {
+    $provider = Ai::textProvider('cloudcode-pa');
+    $gateway = $provider->textGateway();
 
-    expect(fn () => $gateway->generateText(
-        provider: Ai::textProvider('cloudcode-pa'),
-        model: 'gemini-2.0-flash',
-        instructions: null,
-    ))->toThrow(\Ursamajeur\CloudCodePA\Exceptions\CloudCodeException::class, 'generateText()');
+    expect($gateway)->toBeInstanceOf(CloudCodeGateway::class);
 });
 
+// streamText still throws until Epic 4
 it('CloudCodeGateway streamText throws CloudCodeException stub', function (): void {
-    $gateway = new CloudCodeGateway;
+    $provider = Ai::textProvider('cloudcode-pa');
+    $gateway = $provider->textGateway();
 
     expect(fn () => $gateway->streamText(
         invocationId: 'test-id',
-        provider: Ai::textProvider('cloudcode-pa'),
+        provider: $provider,
         model: 'gemini-2.0-flash',
         instructions: null,
     ))->toThrow(\Ursamajeur\CloudCodePA\Exceptions\CloudCodeException::class, 'streamText()');

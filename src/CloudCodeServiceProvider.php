@@ -13,6 +13,9 @@ use Ursamajeur\CloudCodePA\Auth\CredentialStore;
 use Ursamajeur\CloudCodePA\Config\ModelRegistry;
 use Ursamajeur\CloudCodePA\Contracts\CredentialStoreInterface;
 use Ursamajeur\CloudCodePA\Gateway\CloudCodeGateway;
+use Ursamajeur\CloudCodePA\Parsing\RequestBuilder;
+use Ursamajeur\CloudCodePA\Parsing\ResponseMapper;
+use Ursamajeur\CloudCodePA\Transport\GeminiCLI\GeminiCLIConnector;
 
 final class CloudCodeServiceProvider extends ServiceProvider
 {
@@ -79,8 +82,27 @@ final class CloudCodeServiceProvider extends ServiceProvider
             /** @var array<string, mixed> $packageConfig */
             $packageConfig = config('cloudcode-pa', []);
 
+            $connector = new GeminiCLIConnector(
+                baseUrl: (string) config('cloudcode-pa.transport.base_url'),
+                cloudCodeAuth: $app->make(CloudCodeAuthenticator::class),
+                timeout: (int) config('cloudcode-pa.transport.timeout', 30),
+                connectTimeout: (int) config('cloudcode-pa.transport.connect_timeout', 10),
+                debug: (bool) config('cloudcode-pa.debug', false),
+            );
+
+            $requestBuilder = new RequestBuilder(
+                modelRegistry: $app->make(ModelRegistry::class),
+                project: (string) config('cloudcode-pa.project', ''),
+            );
+
+            $gateway = new CloudCodeGateway(
+                connector: $connector,
+                requestBuilder: $requestBuilder,
+                responseMapper: new ResponseMapper,
+            );
+
             return new CloudCodeAiProvider(
-                gateway: new CloudCodeGateway,
+                gateway: $gateway,
                 config: array_merge($packageConfig, $config),
                 events: $events,
             );
