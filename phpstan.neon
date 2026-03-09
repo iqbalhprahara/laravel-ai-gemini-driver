@@ -20,3 +20,20 @@ parameters:
             identifier: property.notFound
             path: tests/Unit/*
             reportUnmatched: false
+        # Mockery mocks return MockInterface which PHPStan cannot match to interface types
+        -
+            identifier: argument.type
+            path: tests/*
+        # Mockery expectation chains (shouldReceive()->once()->andReturn()) return union types
+        -
+            identifier: method.notFound
+            path: tests/Feature/*
+        # Log::spy() adds shouldHaveReceived/shouldNotHaveReceived which PHPStan can't resolve
+        -
+            identifier: staticMethod.notFound
+            path: tests/Feature/*
+        # json_decode with file_get_contents in test assertions
+        -
+            identifier: argument.type
+            path: tests/Unit/Auth/CredentialStoreTest.php
+            reportUnmatched: false

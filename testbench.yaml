@@ -1,0 +1,16 @@
+laravel: '@testbench'
+
+providers:
+  - Ursamajeur\CloudCodePA\CloudCodeServiceProvider
+
+workbench:
+  start: '/'
+  install: false
+  health: false
+  discovers:
+    web: false
+    api: false
+    commands: true
+    components: false
+    factories: false
+    views: false
