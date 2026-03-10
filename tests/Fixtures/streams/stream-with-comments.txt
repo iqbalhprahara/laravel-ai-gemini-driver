@@ -1,0 +1,6 @@
+: this is an SSE comment
+data: {"candidates":[{"content":{"parts":[{"text":"Hello"}],"role":"model"}}]}
+
+: another comment line
+data: {"candidates":[{"content":{"parts":[{"text":" there!"}],"role":"model"},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":4,"candidatesTokenCount":2,"totalTokenCount":6}}
+
