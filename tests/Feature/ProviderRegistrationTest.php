@@ -45,19 +45,6 @@ it('CloudCodeGateway is accessible from resolved provider', function (): void {
     expect($gateway)->toBeInstanceOf(CloudCodeGateway::class);
 });
 
-// streamText still throws until Epic 4
-it('CloudCodeGateway streamText throws CloudCodeException stub', function (): void {
-    $provider = Ai::textProvider('cloudcode-pa');
-    $gateway = $provider->textGateway();
-
-    expect(fn () => $gateway->streamText(
-        invocationId: 'test-id',
-        provider: $provider,
-        model: 'gemini-2.0-flash',
-        instructions: null,
-    ))->toThrow(\Ursamajeur\CloudCodePA\Exceptions\CloudCodeException::class, 'streamText()');
-});
-
 // Model method tests — defaults from package config
 it('CloudCodeAiProvider defaultTextModel returns config default', function (): void {
     // Arrange & Act

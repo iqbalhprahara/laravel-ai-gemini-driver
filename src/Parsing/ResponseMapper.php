@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ursamajeur\CloudCodePA\Parsing;
 
 use Ursamajeur\CloudCodePA\Parsing\DTOs\GenerationResult;
+use Ursamajeur\CloudCodePA\Parsing\DTOs\StreamChunkResult;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\ToolCallData;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\UsageData;
 
@@ -38,6 +39,37 @@ final class ResponseMapper
         }
 
         return $body !== '' ? $body : 'Unknown error';
+    }
+
+    /**
+     * Map a single streaming chunk JSON to a StreamChunkResult DTO.
+     *
+     * Detects final chunk by presence of finishReason on the candidate.
+     *
+     * @param  array<string, mixed>  $chunkJson
+     */
+    public function mapChunk(array $chunkJson): StreamChunkResult
+    {
+        $text = $this->extractText($chunkJson);
+        $toolCalls = $this->extractToolCalls($chunkJson);
+        $finishReason = $chunkJson['candidates'][0]['finishReason'] ?? null;
+        $isFinal = $finishReason !== null;
+
+        $usage = null;
+        $mappedFinishReason = null;
+
+        if ($isFinal) {
+            $usage = $this->extractUsage($chunkJson);
+            $mappedFinishReason = $this->extractFinishReason($chunkJson);
+        }
+
+        return new StreamChunkResult(
+            text: $text,
+            isFinal: $isFinal,
+            usage: $usage,
+            finishReason: $mappedFinishReason,
+            toolCalls: $toolCalls,
+        );
     }
 
     /**

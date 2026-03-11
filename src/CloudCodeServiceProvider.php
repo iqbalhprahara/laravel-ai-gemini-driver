@@ -99,6 +99,7 @@ final class CloudCodeServiceProvider extends ServiceProvider
                 connector: $connector,
                 requestBuilder: $requestBuilder,
                 responseMapper: new ResponseMapper,
+                streamTimeout: (int) config('cloudcode-pa.transport.stream_timeout', 120),
             );
 
             return new CloudCodeAiProvider(

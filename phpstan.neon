@@ -29,13 +29,10 @@ parameters:
         -
             identifier: method.notFound
             path: tests/Helpers/*
-            reportUnmatched: false
         # Mockery mocks return MockInterface — type mismatch when passed as typed parameter
-        # Scoped to specific directories that use Mockery mocks
         -
             identifier: argument.type
             path: tests/Helpers/GatewayFactory.php
-            reportUnmatched: false
         -
             identifier: argument.type
             path: tests/Feature/Transport/*
@@ -51,8 +48,10 @@ parameters:
         -
             identifier: argument.type
             path: tests/Unit/Parsing/ResponseMapperTest.php
-            reportUnmatched: false
-        # Log::shouldReceive/shouldHaveReceived/shouldNotHaveReceived — Mockery facade spying
+        -
+            identifier: argument.type
+            path: tests/Feature/StreamingTest.php
+        # Log::shouldReceive/shouldHaveReceived — Mockery facade spying
         -
             identifier: staticMethod.notFound
             path: tests/Feature/ErrorHandlingTest.php

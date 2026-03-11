@@ -6,7 +6,9 @@ namespace Ursamajeur\CloudCodePA\Gateway;
 
 use Closure;
 use Generator;
+use GuzzleHttp\Psr7\StreamWrapper;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Files\TranscribableAudio;
 use Laravel\Ai\Contracts\Gateway\Gateway;
 use Laravel\Ai\Contracts\Providers\AudioProvider;
@@ -24,6 +26,12 @@ use Laravel\Ai\Responses\EmbeddingsResponse;
 use Laravel\Ai\Responses\ImageResponse;
 use Laravel\Ai\Responses\TextResponse;
 use Laravel\Ai\Responses\TranscriptionResponse;
+use Laravel\Ai\Streaming\Events\StreamEnd;
+use Laravel\Ai\Streaming\Events\StreamStart;
+use Laravel\Ai\Streaming\Events\TextDelta;
+use Laravel\Ai\Streaming\Events\TextEnd;
+use Laravel\Ai\Streaming\Events\TextStart;
+use Laravel\Ai\Streaming\Events\ToolCall as ToolCallEvent;
 use Saloon\Exceptions\Request\FatalRequestException;
 use Ursamajeur\CloudCodePA\Exceptions\ApiException;
 use Ursamajeur\CloudCodePA\Exceptions\AuthenticationException;
@@ -32,8 +40,10 @@ use Ursamajeur\CloudCodePA\Exceptions\TransportException;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\GenerationResult;
 use Ursamajeur\CloudCodePA\Parsing\RequestBuilder;
 use Ursamajeur\CloudCodePA\Parsing\ResponseMapper;
+use Ursamajeur\CloudCodePA\Parsing\SSEParser;
 use Ursamajeur\CloudCodePA\Transport\GeminiCLI\GeminiCLIConnector;
 use Ursamajeur\CloudCodePA\Transport\GeminiCLI\Requests\GenerateContentRequest;
+use Ursamajeur\CloudCodePA\Transport\GeminiCLI\Requests\StreamContentRequest;
 
 /**
  * Direct gateway for the CloudCode-PA v1internal API.
@@ -48,6 +58,8 @@ final class CloudCodeGateway implements Gateway
         private readonly GeminiCLIConnector $connector,
         private readonly RequestBuilder $requestBuilder,
         private readonly ResponseMapper $responseMapper,
+        private readonly SSEParser $sseParser = new SSEParser,
+        private readonly int $streamTimeout = 120,
     ) {}
 
     // ── Text (supported) ──────────────────────────────────────────
@@ -116,7 +128,103 @@ final class CloudCodeGateway implements Gateway
         ?TextGenerationOptions $options = null,
         ?int $timeout = null,
     ): Generator {
-        throw CloudCodeException::notImplemented('streamText()');
+        $generationConfig = $this->buildGenerationConfig($options);
+
+        $envelope = $this->requestBuilder->build(
+            model: $model,
+            messages: $messages,
+            systemInstruction: $instructions,
+            generationConfig: $generationConfig,
+            tools: $tools,
+        );
+
+        $request = new StreamContentRequest($envelope, $this->streamTimeout);
+
+        try {
+            $response = $this->connector->send($request);
+        } catch (FatalRequestException $e) {
+            $message = $e->getMessage();
+            if (str_contains(strtolower($message), 'timeout') || str_contains(strtolower($message), 'timed out')) {
+                throw TransportException::timeout($e);
+            }
+            throw TransportException::connectionFailed($e);
+        }
+
+        if ($response->failed()) {
+            $this->handleErrorResponse($response->status(), $response->body(), $model);
+        }
+
+        $stream = StreamWrapper::getResource($response->stream());
+        $messageId = (string) Str::ulid();
+
+        yield new StreamStart(
+            id: (string) Str::ulid(),
+            provider: 'cloudcode-pa',
+            model: $model,
+            timestamp: time(),
+        );
+
+        yield new TextStart(
+            id: (string) Str::ulid(),
+            messageId: $messageId,
+            timestamp: time(),
+        );
+
+        $finalUsage = new Usage;
+        $finalReason = 'stop';
+        $toolCallIndex = 0;
+
+        foreach ($this->sseParser->parse($stream) as $chunkJson) {
+            $chunk = $this->responseMapper->mapChunk($chunkJson);
+
+            if ($chunk->text !== '') {
+                yield new TextDelta(
+                    id: (string) Str::ulid(),
+                    messageId: $messageId,
+                    delta: $chunk->text,
+                    timestamp: time(),
+                );
+            }
+
+            foreach ($chunk->toolCalls as $toolCall) {
+                yield new ToolCallEvent(
+                    id: (string) Str::ulid(),
+                    toolCall: new ToolCall(
+                        id: "call_{$toolCallIndex}",
+                        name: $toolCall->name,
+                        arguments: $toolCall->arguments,
+                    ),
+                    timestamp: time(),
+                );
+                $toolCallIndex++;
+            }
+
+            if ($chunk->isFinal) {
+                if ($chunk->usage !== null) {
+                    $finalUsage = new Usage(
+                        promptTokens: $chunk->usage->promptTokenCount,
+                        completionTokens: $chunk->usage->candidatesTokenCount,
+                    );
+                }
+
+                if ($chunk->finishReason !== null) {
+                    $finalReason = $chunk->finishReason;
+                }
+            }
+        }
+
+        yield new TextEnd(
+            id: (string) Str::ulid(),
+            messageId: $messageId,
+            timestamp: time(),
+        );
+
+        yield new StreamEnd(
+            id: (string) Str::ulid(),
+            reason: $finalReason,
+            usage: $finalUsage,
+            timestamp: time(),
+        );
     }
 
     public function onToolInvocation(Closure $invoking, Closure $invoked): self
