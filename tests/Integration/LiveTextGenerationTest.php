@@ -168,7 +168,7 @@ it('analyzes a base64 document via the real API', function (): void {
 })->group('integration');
 
 it('streams response for multimodal input via the real API', function (): void {
-    $textContent = "The quick brown fox jumps over the lazy dog.";
+    $textContent = 'The quick brown fox jumps over the lazy dog.';
     $docBase64 = base64_encode($textContent);
 
     $provider = Ai::textProvider('cloudcode-pa');

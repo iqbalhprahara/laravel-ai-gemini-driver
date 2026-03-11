@@ -6,6 +6,12 @@ namespace Ursamajeur\CloudCodePA\Exceptions;
 
 class ApiException extends CloudCodeException
 {
+    public const HTTP_UNAUTHORIZED = 401;
+
+    public const HTTP_RATE_LIMITED = 429;
+
+    public const HTTP_SERVER_ERROR = 500;
+
     /**
      * @param  int  $statusCode  HTTP status code — also available via getCode()
      * @param  string  $errorMessage  Raw error description from the API response
@@ -31,7 +37,7 @@ class ApiException extends CloudCodeException
 
         return new self(
             message: $message,
-            statusCode: 429,
+            statusCode: self::HTTP_RATE_LIMITED,
             errorMessage: 'Rate Limited',
             model: $model,
         );

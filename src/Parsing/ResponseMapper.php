@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Ursamajeur\CloudCodePA\Parsing;
 
+use Ursamajeur\CloudCodePA\Contracts\ResponseMapperInterface;
+use Ursamajeur\CloudCodePA\Parsing\Concerns\ExtractsErrorMessages;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\GenerationResult;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\StreamChunkResult;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\ToolCallData;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\UsageData;
 
-final class ResponseMapper
+final class ResponseMapper implements ResponseMapperInterface
 {
+    use ExtractsErrorMessages;
+
     /**
      * Decode a v1internal JSON response body and map to a GenerationResult DTO.
      *
@@ -22,23 +26,6 @@ final class ResponseMapper
         $responseJson = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
 
         return $this->map($responseJson);
-    }
-
-    /**
-     * Extract the error message from a v1internal error response body.
-     *
-     * Keeps v1internal error envelope knowledge inside ResponseMapper.
-     */
-    public function extractErrorMessage(string $body): string
-    {
-        /** @var mixed $decoded */
-        $decoded = json_decode($body, true);
-
-        if (is_array($decoded)) {
-            return (string) ($decoded['error']['message'] ?? $decoded['error'] ?? $body);
-        }
-
-        return $body !== '' ? $body : 'Unknown error';
     }
 
     /**

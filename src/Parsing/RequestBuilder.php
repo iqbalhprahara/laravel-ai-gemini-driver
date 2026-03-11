@@ -8,8 +8,8 @@ use Laravel\Ai\Messages\AssistantMessage;
 use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Messages\ToolResultMessage;
 use Laravel\Ai\Messages\UserMessage;
-use Ursamajeur\CloudCodePA\Config\ModelRegistry;
 use Ursamajeur\CloudCodePA\Auth\ProjectResolver;
+use Ursamajeur\CloudCodePA\Config\ModelRegistry;
 use Ursamajeur\CloudCodePA\Contracts\RequestBuilderInterface;
 
 final class RequestBuilder implements RequestBuilderInterface

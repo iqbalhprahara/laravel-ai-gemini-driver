@@ -7,6 +7,7 @@ namespace Ursamajeur\CloudCodePA\Parsing;
 use Generator;
 use Illuminate\Support\Facades\Log;
 use JsonException;
+use Ursamajeur\CloudCodePA\Contracts\SSEParserInterface;
 
 /**
  * Parses Server-Sent Events (SSE) byte streams into structured JSON chunks.
@@ -15,7 +16,7 @@ use JsonException;
  * Each parsed chunk is yielded via Generator for immediate forwarding (zero buffering).
  * Malformed chunks are logged and skipped — the generator never crashes.
  */
-final class SSEParser
+final class SSEParser implements SSEParserInterface
 {
     /**
      * Parse an SSE stream into individual JSON response arrays.

@@ -45,6 +45,11 @@ parameters:
             identifier: argument.type
             path: tests/Unit/Auth/*
             reportUnmatched: false
+        # Mockery expectation chains in unit auth tests
+        -
+            identifier: method.notFound
+            path: tests/Unit/Auth/*
+            reportUnmatched: false
         -
             identifier: argument.type
             path: tests/Unit/Parsing/ResponseMapperTest.php
@@ -68,6 +73,11 @@ parameters:
             reportUnmatched: false
         -
             identifier: property.nonObject
+            path: tests/Integration/*
+            reportUnmatched: false
+        # Pest Expectation->not is a magic property (same as Unit/* rule)
+        -
+            identifier: property.notFound
             path: tests/Integration/*
             reportUnmatched: false
         -

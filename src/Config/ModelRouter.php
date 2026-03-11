@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ursamajeur\CloudCodePA\Config;
 
-final class ModelRouter
+use Ursamajeur\CloudCodePA\Contracts\ModelRouterInterface;
+
+final class ModelRouter implements ModelRouterInterface
 {
     /** @var list<string> */
     private readonly array $partnerPrefixes;

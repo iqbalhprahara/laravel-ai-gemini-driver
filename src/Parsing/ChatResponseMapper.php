@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Ursamajeur\CloudCodePA\Parsing;
 
+use Ursamajeur\CloudCodePA\Contracts\ResponseMapperInterface;
+use Ursamajeur\CloudCodePA\Parsing\Concerns\ExtractsErrorMessages;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\GenerationResult;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\UsageData;
 
-final class ChatResponseMapper
+final class ChatResponseMapper implements ResponseMapperInterface
 {
+    use ExtractsErrorMessages;
+
     /**
      * Map a generateChat JSON response body to a GenerationResult DTO.
      *
@@ -28,20 +32,5 @@ final class ChatResponseMapper
             ),
             finishReason: 'stop',
         );
-    }
-
-    /**
-     * Extract the error message from a generateChat error response.
-     */
-    public function extractErrorMessage(string $body): string
-    {
-        /** @var mixed $decoded */
-        $decoded = json_decode($body, true);
-
-        if (is_array($decoded)) {
-            return (string) ($decoded['error']['message'] ?? $decoded['error'] ?? $body);
-        }
-
-        return $body !== '' ? $body : 'Unknown error';
     }
 }

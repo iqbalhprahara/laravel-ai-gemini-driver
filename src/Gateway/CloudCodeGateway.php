@@ -37,6 +37,10 @@ use Saloon\Http\Response;
 use Ursamajeur\CloudCodePA\Config\CascadeConfig;
 use Ursamajeur\CloudCodePA\Config\ModelRouter;
 use Ursamajeur\CloudCodePA\Config\RpcType;
+use Ursamajeur\CloudCodePA\Contracts\ModelRouterInterface;
+use Ursamajeur\CloudCodePA\Contracts\RequestBuilderInterface;
+use Ursamajeur\CloudCodePA\Contracts\ResponseMapperInterface;
+use Ursamajeur\CloudCodePA\Contracts\SSEParserInterface;
 use Ursamajeur\CloudCodePA\Exceptions\ApiException;
 use Ursamajeur\CloudCodePA\Exceptions\AuthenticationException;
 use Ursamajeur\CloudCodePA\Exceptions\CloudCodeException;
@@ -44,7 +48,6 @@ use Ursamajeur\CloudCodePA\Exceptions\TransportException;
 use Ursamajeur\CloudCodePA\Parsing\ChatRequestBuilder;
 use Ursamajeur\CloudCodePA\Parsing\ChatResponseMapper;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\GenerationResult;
-use Ursamajeur\CloudCodePA\Parsing\RequestBuilder;
 use Ursamajeur\CloudCodePA\Parsing\ResponseMapper;
 use Ursamajeur\CloudCodePA\Parsing\SSEParser;
 use Ursamajeur\CloudCodePA\Transport\GeminiCLI\GeminiCLIConnector;
@@ -63,13 +66,13 @@ final class CloudCodeGateway implements Gateway
 {
     public function __construct(
         private readonly GeminiCLIConnector $connector,
-        private readonly RequestBuilder $requestBuilder,
+        private readonly RequestBuilderInterface $requestBuilder,
         private readonly ResponseMapper $responseMapper,
-        private readonly ModelRouter $modelRouter = new ModelRouter,
+        private readonly ModelRouterInterface $modelRouter = new ModelRouter,
         private readonly ?ChatRequestBuilder $chatRequestBuilder = null,
-        private readonly ChatResponseMapper $chatResponseMapper = new ChatResponseMapper,
+        private readonly ResponseMapperInterface $chatResponseMapper = new ChatResponseMapper,
         private readonly ?CascadeConfig $cascadeConfig = null,
-        private readonly SSEParser $sseParser = new SSEParser,
+        private readonly SSEParserInterface $sseParser = new SSEParser,
         private readonly int $streamTimeout = 120,
     ) {}
 
@@ -103,7 +106,7 @@ final class CloudCodeGateway implements Gateway
         foreach ($steps as $stepModel) {
             $response = $this->sendForModel($stepModel, $messages, $instructions, $generationConfig, $tools);
 
-            if ($response->status() !== 429) {
+            if ($response->status() !== ApiException::HTTP_RATE_LIMITED) {
                 if ($response->failed()) {
                     $this->handleErrorResponse($response->status(), $response->body(), $stepModel);
                 }
@@ -414,9 +417,9 @@ final class CloudCodeGateway implements Gateway
         $errorMessage = $this->responseMapper->extractErrorMessage($body);
 
         match (true) {
-            $statusCode === 429 => throw ApiException::rateLimited($model),
-            $statusCode === 401 => throw AuthenticationException::tokenExpired(),
-            $statusCode >= 500 => throw ApiException::serverError($statusCode, $errorMessage, $model),
+            $statusCode === ApiException::HTTP_RATE_LIMITED => throw ApiException::rateLimited($model),
+            $statusCode === ApiException::HTTP_UNAUTHORIZED => throw AuthenticationException::tokenExpired(),
+            $statusCode >= ApiException::HTTP_SERVER_ERROR => throw ApiException::serverError($statusCode, $errorMessage, $model),
             default => throw ApiException::clientError($statusCode, $errorMessage, $model),
         };
     }

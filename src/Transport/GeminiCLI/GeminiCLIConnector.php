@@ -29,7 +29,7 @@ final class GeminiCLIConnector extends Connector
         private readonly int $connectTimeout = 10,
         private readonly bool $debug = false,
     ) {
-        $this->endpoints = is_array($baseUrl) ? array_values($baseUrl) : [$baseUrl];
+        $this->endpoints = is_array($baseUrl) ? $baseUrl : [$baseUrl];
     }
 
     public function resolveBaseUrl(): string
