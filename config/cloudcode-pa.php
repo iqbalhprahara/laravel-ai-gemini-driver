@@ -122,6 +122,7 @@ return [
     'default_model' => env('CLOUDCODE_PA_DEFAULT_MODEL', 'claude-opus-4'),
     'cheapest_model' => env('CLOUDCODE_PA_CHEAPEST_MODEL', 'gemini-2.5-flash'),
     'smartest_model' => env('CLOUDCODE_PA_SMARTEST_MODEL', 'claude-opus-4'),
+    'default_reranking_model' => env('CLOUDCODE_PA_RERANKING_MODEL', 'gemini-2.5-flash'),
 
     'models' => [
         // Partner models — routed via generateChat + model_config_id

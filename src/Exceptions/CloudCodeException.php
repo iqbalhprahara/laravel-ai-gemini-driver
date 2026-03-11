@@ -44,4 +44,16 @@ class CloudCodeException extends RuntimeException
             "Method {$method} is not yet implemented.",
         );
     }
+
+    /**
+     * LLM reranking response could not be parsed as valid JSON scores.
+     */
+    public static function rerankingParseFailed(string $rawResponse): self
+    {
+        $preview = mb_substr($rawResponse, 0, 200);
+
+        return new self(
+            "Failed to parse reranking scores from LLM response. Preview: {$preview}",
+        );
+    }
 }

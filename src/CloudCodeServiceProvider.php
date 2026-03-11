@@ -16,6 +16,7 @@ use Ursamajeur\CloudCodePA\Config\ModelRegistry;
 use Ursamajeur\CloudCodePA\Config\ModelRouter;
 use Ursamajeur\CloudCodePA\Contracts\CredentialStoreInterface;
 use Ursamajeur\CloudCodePA\Gateway\CloudCodeGateway;
+use Ursamajeur\CloudCodePA\Gateway\CloudCodeRerankingGateway;
 use Ursamajeur\CloudCodePA\Parsing\ChatRequestBuilder;
 use Ursamajeur\CloudCodePA\Parsing\ChatResponseMapper;
 use Ursamajeur\CloudCodePA\Parsing\RequestBuilder;
@@ -144,11 +145,17 @@ final class CloudCodeServiceProvider extends ServiceProvider
                 streamTimeout: (int) config('cloudcode-pa.transport.stream_timeout', 120),
             );
 
-            return new CloudCodeAiProvider(
+            $provider = new CloudCodeAiProvider(
                 gateway: $gateway,
                 config: array_merge($packageConfig, $config),
                 events: $events,
             );
+
+            $provider->useRerankingGateway(new CloudCodeRerankingGateway(
+                textGateway: $gateway,
+            ));
+
+            return $provider;
         });
     }
 }

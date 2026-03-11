@@ -1,0 +1,20 @@
+{
+    "candidates": [
+        {
+            "content": {
+                "parts": [
+                    {"text": "[{\"index\": 0, \"score\": 0.95}, {\"index\": 1, \"score\": 0.32}, {\"index\": 2, \"score\": 0.78}]"}
+                ],
+                "role": "model"
+            },
+            "finishReason": "STOP",
+            "safetyRatings": []
+        }
+    ],
+    "usageMetadata": {
+        "promptTokenCount": 120,
+        "candidatesTokenCount": 45,
+        "totalTokenCount": 165
+    },
+    "modelVersion": "gemini-2.5-flash"
+}

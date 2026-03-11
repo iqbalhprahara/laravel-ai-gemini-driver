@@ -50,6 +50,28 @@ parameters:
             path: tests/Unit/Parsing/ResponseMapperTest.php
         -
             identifier: argument.type
+            path: tests/Unit/Gateway/*
+            reportUnmatched: false
+        -
+            identifier: method.notFound
+            path: tests/Unit/Gateway/*
+            reportUnmatched: false
+        # Pest chain assertions: first() proven non-null by prior toBeInstanceOf
+        -
+            identifier: property.nonObject
+            path: tests/Feature/RerankingTest.php
+            reportUnmatched: false
+        # Integration tests load real .env — env() is intentional
+        -
+            identifier: larastan.noEnvCallsOutsideOfConfig
+            path: tests/Integration/*
+            reportUnmatched: false
+        -
+            identifier: property.nonObject
+            path: tests/Integration/*
+            reportUnmatched: false
+        -
+            identifier: argument.type
             path: tests/Feature/StreamingTest.php
         # Log::shouldReceive/shouldHaveReceived — Mockery facade spying
         -
