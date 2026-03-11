@@ -7,9 +7,12 @@ namespace Ursamajeur\CloudCodePA\Parsing;
 use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Messages\UserMessage;
 use Ursamajeur\CloudCodePA\Auth\ProjectResolver;
+use Ursamajeur\CloudCodePA\Parsing\Concerns\ResolvesProject;
 
 final class ChatRequestBuilder
 {
+    use ResolvesProject;
+
     public function __construct(
         private readonly string $project = '',
         private readonly ?ProjectResolver $projectResolver = null,
@@ -59,19 +62,6 @@ final class ChatRequestBuilder
             if ($message instanceof Message && $message->role->value === 'user') {
                 return $message->content ?? '';
             }
-        }
-
-        return '';
-    }
-
-    private function resolveProject(): string
-    {
-        if ($this->project !== '') {
-            return $this->project;
-        }
-
-        if ($this->projectResolver !== null) {
-            return $this->projectResolver->resolve();
         }
 
         return '';

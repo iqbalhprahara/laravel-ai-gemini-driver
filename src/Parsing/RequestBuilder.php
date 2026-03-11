@@ -11,9 +11,12 @@ use Laravel\Ai\Messages\UserMessage;
 use Ursamajeur\CloudCodePA\Auth\ProjectResolver;
 use Ursamajeur\CloudCodePA\Config\ModelRegistry;
 use Ursamajeur\CloudCodePA\Contracts\RequestBuilderInterface;
+use Ursamajeur\CloudCodePA\Parsing\Concerns\ResolvesProject;
 
 final class RequestBuilder implements RequestBuilderInterface
 {
+    use ResolvesProject;
+
     public function __construct(
         private readonly ModelRegistry $modelRegistry,
         private readonly string $project = '',
@@ -61,22 +64,6 @@ final class RequestBuilder implements RequestBuilderInterface
         ];
 
         return $envelope;
-    }
-
-    /**
-     * Resolve the project ID from config or via loadCodeAssist.
-     */
-    private function resolveProject(): string
-    {
-        if ($this->project !== '') {
-            return $this->project;
-        }
-
-        if ($this->projectResolver !== null) {
-            return $this->projectResolver->resolve();
-        }
-
-        return '';
     }
 
     /**
