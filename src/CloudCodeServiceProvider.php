@@ -10,9 +10,14 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Ai\Ai;
 use Ursamajeur\CloudCodePA\Auth\CloudCodeAuthenticator;
 use Ursamajeur\CloudCodePA\Auth\CredentialStore;
+use Ursamajeur\CloudCodePA\Auth\ProjectResolver;
+use Ursamajeur\CloudCodePA\Config\CascadeConfig;
 use Ursamajeur\CloudCodePA\Config\ModelRegistry;
+use Ursamajeur\CloudCodePA\Config\ModelRouter;
 use Ursamajeur\CloudCodePA\Contracts\CredentialStoreInterface;
 use Ursamajeur\CloudCodePA\Gateway\CloudCodeGateway;
+use Ursamajeur\CloudCodePA\Parsing\ChatRequestBuilder;
+use Ursamajeur\CloudCodePA\Parsing\ChatResponseMapper;
 use Ursamajeur\CloudCodePA\Parsing\RequestBuilder;
 use Ursamajeur\CloudCodePA\Parsing\ResponseMapper;
 use Ursamajeur\CloudCodePA\Transport\GeminiCLI\GeminiCLIConnector;
@@ -82,23 +87,60 @@ final class CloudCodeServiceProvider extends ServiceProvider
             /** @var array<string, mixed> $packageConfig */
             $packageConfig = config('cloudcode-pa', []);
 
+            // Resolve endpoints: env override → config endpoints list
+            $baseUrlOverride = (string) config('cloudcode-pa.transport.base_url', '');
+            /** @var list<string> $endpoints */
+            $endpoints = $baseUrlOverride !== ''
+                ? [$baseUrlOverride]
+                : (array) config('cloudcode-pa.transport.endpoints', ['https://cloudcode-pa.googleapis.com/v1internal']);
+
             $connector = new GeminiCLIConnector(
-                baseUrl: (string) config('cloudcode-pa.transport.base_url'),
+                baseUrl: $endpoints,
                 cloudCodeAuth: $app->make(CloudCodeAuthenticator::class),
                 timeout: (int) config('cloudcode-pa.transport.timeout', 30),
                 connectTimeout: (int) config('cloudcode-pa.transport.connect_timeout', 10),
                 debug: (bool) config('cloudcode-pa.debug', false),
             );
 
+            $projectId = (string) config('cloudcode-pa.project', '');
+            $projectResolver = null;
+
+            if ($projectId === '') {
+                $projectResolver = new ProjectResolver(
+                    connector: $connector,
+                    debug: (bool) config('cloudcode-pa.debug', false),
+                );
+            }
+
             $requestBuilder = new RequestBuilder(
                 modelRegistry: $app->make(ModelRegistry::class),
-                project: (string) config('cloudcode-pa.project', ''),
+                project: $projectId,
+                projectResolver: $projectResolver,
+            );
+
+            $chatRequestBuilder = new ChatRequestBuilder(
+                project: $projectId,
+                projectResolver: $projectResolver,
+            );
+
+            $defaultModel = (string) config('cloudcode-pa.default_model', 'claude-opus-4');
+            /** @var list<string> $cascadeSteps */
+            $cascadeSteps = (array) config('cloudcode-pa.cascade.steps', []);
+
+            $cascadeConfig = new CascadeConfig(
+                enabled: (bool) config('cloudcode-pa.cascade.enabled', true),
+                steps: $cascadeSteps,
+                triggerModel: $defaultModel,
             );
 
             $gateway = new CloudCodeGateway(
                 connector: $connector,
                 requestBuilder: $requestBuilder,
                 responseMapper: new ResponseMapper,
+                modelRouter: new ModelRouter,
+                chatRequestBuilder: $chatRequestBuilder,
+                chatResponseMapper: new ChatResponseMapper,
+                cascadeConfig: $cascadeConfig,
                 streamTimeout: (int) config('cloudcode-pa.transport.stream_timeout', 120),
             );
 

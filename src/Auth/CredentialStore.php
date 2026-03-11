@@ -9,7 +9,7 @@ use Ursamajeur\CloudCodePA\Exceptions\AuthenticationException;
 
 final class CredentialStore implements CredentialStoreInterface
 {
-    /** @var array{access_token: string, refresh_token: string, token_type: string, expiry_date: int}|null */
+    /** @var array{access_token: string, refresh_token: string, token_type: string, expires_at: int}|null */
     private ?array $credentials = null;
 
     public function __construct(
@@ -33,7 +33,7 @@ final class CredentialStore implements CredentialStoreInterface
 
     public function isExpired(): bool
     {
-        return $this->loadCredentials()['expiry_date'] <= $this->nowMillis();
+        return $this->loadCredentials()['expires_at'] <= time();
     }
 
     public function updateCredentials(string $accessToken, string $refreshToken, int $expiresAt): void
@@ -42,7 +42,7 @@ final class CredentialStore implements CredentialStoreInterface
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
-            'expiry_date' => $expiresAt * 1000,
+            'expires_at' => $expiresAt,
         ];
 
         $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
@@ -54,7 +54,7 @@ final class CredentialStore implements CredentialStoreInterface
     }
 
     /**
-     * @return array{access_token: string, refresh_token: string, token_type: string, expiry_date: int}
+     * @return array{access_token: string, refresh_token: string, token_type: string, expires_at: int}
      */
     private function loadCredentials(): array
     {
@@ -76,28 +76,23 @@ final class CredentialStore implements CredentialStoreInterface
         $decoded = json_decode($contents, true);
 
         if (! is_array($decoded)
-            || ! isset($decoded['access_token'], $decoded['refresh_token'], $decoded['token_type'], $decoded['expiry_date'])
+            || ! isset($decoded['access_token'], $decoded['refresh_token'], $decoded['token_type'], $decoded['expires_at'])
             || ! is_string($decoded['access_token'])
             || ! is_string($decoded['refresh_token'])
             || ! is_string($decoded['token_type'])
-            || ! is_int($decoded['expiry_date'])
+            || ! is_int($decoded['expires_at'])
         ) {
             throw AuthenticationException::invalidCredentials();
         }
 
-        /** @var array{access_token: string, refresh_token: string, token_type: string, expiry_date: int} $decoded */
+        /** @var array{access_token: string, refresh_token: string, token_type: string, expires_at: int} $decoded */
         $this->credentials = [
             'access_token' => $decoded['access_token'],
             'refresh_token' => $decoded['refresh_token'],
             'token_type' => $decoded['token_type'],
-            'expiry_date' => $decoded['expiry_date'],
+            'expires_at' => $decoded['expires_at'],
         ];
 
         return $this->credentials;
-    }
-
-    private function nowMillis(): int
-    {
-        return (int) (microtime(true) * 1000);
     }
 }

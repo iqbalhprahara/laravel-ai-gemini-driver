@@ -42,7 +42,7 @@ it('config contains auth group with expected keys', function (): void {
 it('config contains transport group with expected keys', function (): void {
     expect(config('cloudcode-pa.transport'))
         ->toBeArray()
-        ->toHaveKeys(['base_url', 'timeout', 'stream_timeout', 'connect_timeout']);
+        ->toHaveKeys(['base_url', 'endpoints', 'timeout', 'stream_timeout', 'connect_timeout']);
 });
 
 it('config contains models group as array', function (): void {
@@ -63,13 +63,13 @@ it('provides sensible default values for all config keys', function (): void {
     expect(config('cloudcode-pa.auth.credentials_path'))->toBe(storage_path('cloudcode-pa/oauth_creds.json'))
         ->and(config('cloudcode-pa.auth.client_id'))->toBeString()
         ->and(config('cloudcode-pa.auth.client_secret'))->toBeString()
-        ->and(config('cloudcode-pa.transport.base_url'))->toBe('https://cloudcode-pa.googleapis.com/v1internal')
+        ->and(config('cloudcode-pa.transport.base_url'))->toBe('')
         ->and(config('cloudcode-pa.transport.timeout'))->toBe(30)
         ->and(config('cloudcode-pa.transport.stream_timeout'))->toBe(120)
         ->and(config('cloudcode-pa.transport.connect_timeout'))->toBe(10)
-        ->and(config('cloudcode-pa.default_model'))->toBe('gemini-2.0-flash')
-        ->and(config('cloudcode-pa.cheapest_model'))->toBe('gemini-2.0-flash-lite')
-        ->and(config('cloudcode-pa.smartest_model'))->toBe('gemini-3.1-pro-high')
+        ->and(config('cloudcode-pa.default_model'))->toBe('claude-opus-4')
+        ->and(config('cloudcode-pa.cheapest_model'))->toBe('gemini-2.5-flash')
+        ->and(config('cloudcode-pa.smartest_model'))->toBe('claude-opus-4')
         ->and(config('cloudcode-pa.debug'))->toBeFalse();
 });
 

@@ -9,6 +9,7 @@ use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Messages\ToolResultMessage;
 use Laravel\Ai\Messages\UserMessage;
 use Ursamajeur\CloudCodePA\Config\ModelRegistry;
+use Ursamajeur\CloudCodePA\Auth\ProjectResolver;
 use Ursamajeur\CloudCodePA\Contracts\RequestBuilderInterface;
 
 final class RequestBuilder implements RequestBuilderInterface
@@ -16,6 +17,7 @@ final class RequestBuilder implements RequestBuilderInterface
     public function __construct(
         private readonly ModelRegistry $modelRegistry,
         private readonly string $project = '',
+        private readonly ?ProjectResolver $projectResolver = null,
     ) {}
 
     /**
@@ -54,14 +56,27 @@ final class RequestBuilder implements RequestBuilderInterface
 
         $envelope = [
             'model' => $resolvedModel,
+            'project' => $this->resolveProject(),
             'request' => $request,
         ];
 
+        return $envelope;
+    }
+
+    /**
+     * Resolve the project ID from config or via loadCodeAssist.
+     */
+    private function resolveProject(): string
+    {
         if ($this->project !== '') {
-            $envelope['project'] = $this->project;
+            return $this->project;
         }
 
-        return $envelope;
+        if ($this->projectResolver !== null) {
+            return $this->projectResolver->resolve();
+        }
+
+        return '';
     }
 
     /**

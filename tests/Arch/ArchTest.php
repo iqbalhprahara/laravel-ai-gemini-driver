@@ -10,7 +10,8 @@ arch('all src classes are final')
     ->expect('Ursamajeur\CloudCodePA')
     ->toBeFinal()
     ->ignoring('Ursamajeur\CloudCodePA\Exceptions')
-    ->ignoring('Ursamajeur\CloudCodePA\Contracts');
+    ->ignoring('Ursamajeur\CloudCodePA\Contracts')
+    ->ignoring('Ursamajeur\CloudCodePA\Config\RpcType');
 
 arch('src classes do not use env() directly')
     ->expect('Ursamajeur\CloudCodePA')

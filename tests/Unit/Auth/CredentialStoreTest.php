@@ -69,8 +69,8 @@ it('throws invalidCredentials when required fields are missing', function (): vo
     }
 })->throws(AuthenticationException::class, 'malformed');
 
-// Missing expiry_date throws invalidCredentials
-it('throws invalidCredentials when expiry_date is missing', function (): void {
+// Missing expires_at throws invalidCredentials
+it('throws invalidCredentials when expires_at is missing', function (): void {
     $tempFile = tempnam(sys_get_temp_dir(), 'cred_');
     file_put_contents($tempFile, json_encode([
         'access_token' => 'test',
@@ -110,7 +110,7 @@ it('reads Gemini CLI credential file with extra fields', function (): void {
         ->and($store->isExpired())->toBeFalse();
 });
 
-// updateCredentials writes in Gemini CLI format (expiry_date in ms)
+// updateCredentials writes in Gemini CLI format (expires_at in seconds)
 it('updates credentials and writes in Gemini CLI format', function (): void {
     $tempFile = tempnam(sys_get_temp_dir(), 'cred_');
 
@@ -124,13 +124,13 @@ it('updates credentials and writes in Gemini CLI format', function (): void {
             ->and($store->getRefreshToken())->toBe('new-refresh-token')
             ->and($store->isExpired())->toBeFalse();
 
-        // Verify file uses Gemini CLI format (expiry_date in milliseconds)
+        // Verify file uses Gemini CLI format (expires_at in seconds)
         $written = json_decode(file_get_contents($tempFile), true);
         expect($written)->toBe([
             'access_token' => 'new-access-token',
             'refresh_token' => 'new-refresh-token',
             'token_type' => 'Bearer',
-            'expiry_date' => 9999999999000,
+            'expires_at' => 9999999999,
         ]);
 
         // Verify file permissions (0600)

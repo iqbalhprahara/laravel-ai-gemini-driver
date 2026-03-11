@@ -45,7 +45,8 @@ it('omits project when empty', function (): void {
         messages: [new UserMessage('Hello!')],
     );
 
-    expect($envelope)->not->toHaveKey('project');
+    expect($envelope)->toHaveKey('project')
+        ->and($envelope['project'])->toBe('');
 });
 
 it('maps messages correctly to contents with role and parts', function (): void {

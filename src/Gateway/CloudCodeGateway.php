@@ -33,15 +33,22 @@ use Laravel\Ai\Streaming\Events\TextEnd;
 use Laravel\Ai\Streaming\Events\TextStart;
 use Laravel\Ai\Streaming\Events\ToolCall as ToolCallEvent;
 use Saloon\Exceptions\Request\FatalRequestException;
+use Saloon\Http\Response;
+use Ursamajeur\CloudCodePA\Config\CascadeConfig;
+use Ursamajeur\CloudCodePA\Config\ModelRouter;
+use Ursamajeur\CloudCodePA\Config\RpcType;
 use Ursamajeur\CloudCodePA\Exceptions\ApiException;
 use Ursamajeur\CloudCodePA\Exceptions\AuthenticationException;
 use Ursamajeur\CloudCodePA\Exceptions\CloudCodeException;
 use Ursamajeur\CloudCodePA\Exceptions\TransportException;
+use Ursamajeur\CloudCodePA\Parsing\ChatRequestBuilder;
+use Ursamajeur\CloudCodePA\Parsing\ChatResponseMapper;
 use Ursamajeur\CloudCodePA\Parsing\DTOs\GenerationResult;
 use Ursamajeur\CloudCodePA\Parsing\RequestBuilder;
 use Ursamajeur\CloudCodePA\Parsing\ResponseMapper;
 use Ursamajeur\CloudCodePA\Parsing\SSEParser;
 use Ursamajeur\CloudCodePA\Transport\GeminiCLI\GeminiCLIConnector;
+use Ursamajeur\CloudCodePA\Transport\GeminiCLI\Requests\GenerateChatRequest;
 use Ursamajeur\CloudCodePA\Transport\GeminiCLI\Requests\GenerateContentRequest;
 use Ursamajeur\CloudCodePA\Transport\GeminiCLI\Requests\StreamContentRequest;
 
@@ -58,6 +65,10 @@ final class CloudCodeGateway implements Gateway
         private readonly GeminiCLIConnector $connector,
         private readonly RequestBuilder $requestBuilder,
         private readonly ResponseMapper $responseMapper,
+        private readonly ModelRouter $modelRouter = new ModelRouter,
+        private readonly ?ChatRequestBuilder $chatRequestBuilder = null,
+        private readonly ChatResponseMapper $chatResponseMapper = new ChatResponseMapper,
+        private readonly ?CascadeConfig $cascadeConfig = null,
         private readonly SSEParser $sseParser = new SSEParser,
         private readonly int $streamTimeout = 120,
     ) {}
@@ -82,33 +93,32 @@ final class CloudCodeGateway implements Gateway
     ): TextResponse {
         $generationConfig = $this->buildGenerationConfig($options);
 
-        $envelope = $this->requestBuilder->build(
-            model: $model,
-            messages: $messages,
-            systemInstruction: $instructions,
-            generationConfig: $generationConfig,
-            tools: $tools,
-        );
+        // Determine cascade steps: full cascade for default model, single step for explicit
+        $steps = $this->cascadeConfig !== null && $this->cascadeConfig->shouldCascade($model)
+            ? $this->cascadeConfig->steps
+            : [$model];
 
-        $request = new GenerateContentRequest($envelope);
+        $lastResponse = null;
 
-        try {
-            $response = $this->connector->send($request);
-        } catch (FatalRequestException $e) {
-            $message = $e->getMessage();
-            if (str_contains(strtolower($message), 'timeout') || str_contains(strtolower($message), 'timed out')) {
-                throw TransportException::timeout($e);
+        foreach ($steps as $stepModel) {
+            $response = $this->sendForModel($stepModel, $messages, $instructions, $generationConfig, $tools);
+
+            if ($response->status() !== 429) {
+                if ($response->failed()) {
+                    $this->handleErrorResponse($response->status(), $response->body(), $stepModel);
+                }
+
+                $result = $this->mapResponse($stepModel, $response->body());
+
+                return $this->buildTextResponse($result, $stepModel, $messages, $tools);
             }
-            throw TransportException::connectionFailed($e);
+
+            $lastResponse = $response;
         }
 
-        if ($response->failed()) {
-            $this->handleErrorResponse($response->status(), $response->body(), $model);
-        }
-
-        $result = $this->responseMapper->mapFromBody($response->body());
-
-        return $this->buildTextResponse($result, $model, $messages, $tools);
+        // All cascade steps exhausted with 429
+        /** @var Response $lastResponse */
+        $this->handleErrorResponse($lastResponse->status(), $lastResponse->body(), $steps[count($steps) - 1]);
     }
 
     /**
@@ -128,6 +138,20 @@ final class CloudCodeGateway implements Gateway
         ?TextGenerationOptions $options = null,
         ?int $timeout = null,
     ): Generator {
+        // Partner models don't support SSE streaming — fall back to non-streaming
+        if ($this->modelRouter->isPartnerModel($model)) {
+            $textResponse = $this->generateText($provider, $model, $instructions, $messages, $tools, $schema, $options, $timeout);
+            $messageId = (string) Str::ulid();
+
+            yield new StreamStart(id: (string) Str::ulid(), provider: 'cloudcode-pa', model: $model, timestamp: time());
+            yield new TextStart(id: (string) Str::ulid(), messageId: $messageId, timestamp: time());
+            yield new TextDelta(id: (string) Str::ulid(), messageId: $messageId, delta: $textResponse->text, timestamp: time());
+            yield new TextEnd(id: (string) Str::ulid(), messageId: $messageId, timestamp: time());
+            yield new StreamEnd(id: (string) Str::ulid(), reason: 'stop', usage: $textResponse->usage, timestamp: time());
+
+            return;
+        }
+
         $generationConfig = $this->buildGenerationConfig($options);
 
         $envelope = $this->requestBuilder->build(
@@ -141,7 +165,7 @@ final class CloudCodeGateway implements Gateway
         $request = new StreamContentRequest($envelope, $this->streamTimeout);
 
         try {
-            $response = $this->connector->send($request);
+            $response = $this->connector->sendWithFallback($request);
         } catch (FatalRequestException $e) {
             $message = $e->getMessage();
             if (str_contains(strtolower($message), 'timeout') || str_contains(strtolower($message), 'timed out')) {
@@ -289,6 +313,94 @@ final class CloudCodeGateway implements Gateway
         bool $diarize = false,
     ): TranscriptionResponse {
         throw CloudCodeException::notImplemented('generateTranscription()');
+    }
+
+    // ── RPC dispatch ────────────────────────────────────────────────
+
+    /**
+     * Send a request for the given model using the correct RPC endpoint.
+     *
+     * @param  array<int, mixed>  $messages
+     * @param  array<string, mixed>  $generationConfig
+     * @param  array<int, mixed>  $tools
+     *
+     * @throws TransportException
+     */
+    private function sendForModel(
+        string $model,
+        array $messages,
+        ?string $instructions,
+        array $generationConfig,
+        array $tools,
+    ): Response {
+        $rpcType = $this->modelRouter->rpcFor($model);
+
+        $request = match ($rpcType) {
+            RpcType::GenerateChat => $this->buildChatRequest($model, $messages, $instructions),
+            RpcType::GenerateContent => $this->buildContentRequest($model, $messages, $instructions, $generationConfig, $tools),
+        };
+
+        try {
+            return $this->connector->sendWithFallback($request);
+        } catch (FatalRequestException $e) {
+            $message = $e->getMessage();
+            if (str_contains(strtolower($message), 'timeout') || str_contains(strtolower($message), 'timed out')) {
+                throw TransportException::timeout($e);
+            }
+            throw TransportException::connectionFailed($e);
+        }
+    }
+
+    /**
+     * @param  array<int, mixed>  $messages
+     */
+    private function buildChatRequest(string $model, array $messages, ?string $instructions): GenerateChatRequest
+    {
+        if ($this->chatRequestBuilder === null) {
+            throw CloudCodeException::notImplemented('Partner models require ChatRequestBuilder — check service provider wiring');
+        }
+
+        $envelope = $this->chatRequestBuilder->build(
+            model: $model,
+            messages: $messages,
+            systemInstruction: $instructions,
+        );
+
+        return new GenerateChatRequest($envelope);
+    }
+
+    /**
+     * @param  array<int, mixed>  $messages
+     * @param  array<string, mixed>  $generationConfig
+     * @param  array<int, mixed>  $tools
+     */
+    private function buildContentRequest(
+        string $model,
+        array $messages,
+        ?string $instructions,
+        array $generationConfig,
+        array $tools,
+    ): GenerateContentRequest {
+        $envelope = $this->requestBuilder->build(
+            model: $model,
+            messages: $messages,
+            systemInstruction: $instructions,
+            generationConfig: $generationConfig,
+            tools: $tools,
+        );
+
+        return new GenerateContentRequest($envelope);
+    }
+
+    /**
+     * Map a response body using the appropriate mapper for the model's RPC type.
+     */
+    private function mapResponse(string $model, string $body): GenerationResult
+    {
+        return match ($this->modelRouter->rpcFor($model)) {
+            RpcType::GenerateChat => $this->chatResponseMapper->mapFromBody($body),
+            RpcType::GenerateContent => $this->responseMapper->mapFromBody($body),
+        };
     }
 
     // ── Error handling ─────────────────────────────────────────────

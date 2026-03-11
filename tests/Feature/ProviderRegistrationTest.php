@@ -51,7 +51,7 @@ it('CloudCodeAiProvider defaultTextModel returns config default', function (): v
     $provider = Ai::textProvider('cloudcode-pa');
 
     // Assert — value from config/cloudcode-pa.php default_model key
-    expect($provider->defaultTextModel())->toBe('gemini-2.0-flash');
+    expect($provider->defaultTextModel())->toBe('claude-opus-4');
 });
 
 it('CloudCodeAiProvider cheapestTextModel returns config default', function (): void {
@@ -59,7 +59,7 @@ it('CloudCodeAiProvider cheapestTextModel returns config default', function (): 
     $provider = Ai::textProvider('cloudcode-pa');
 
     // Assert
-    expect($provider->cheapestTextModel())->toBe('gemini-2.0-flash-lite');
+    expect($provider->cheapestTextModel())->toBe('gemini-2.5-flash');
 });
 
 it('CloudCodeAiProvider smartestTextModel returns config default', function (): void {
@@ -67,7 +67,7 @@ it('CloudCodeAiProvider smartestTextModel returns config default', function (): 
     $provider = Ai::textProvider('cloudcode-pa');
 
     // Assert
-    expect($provider->smartestTextModel())->toBe('gemini-3.1-pro-high');
+    expect($provider->smartestTextModel())->toBe('claude-opus-4');
 });
 
 it('CloudCodeAiProvider model methods reflect config overrides', function (): void {

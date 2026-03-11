@@ -36,6 +36,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Project
+    |--------------------------------------------------------------------------
+    |
+    | The CloudCode-PA companion project ID, obtained during Gemini CLI
+    | onboarding via the loadCodeAssist RPC. This is required for all
+    | generateContent requests. If not set, the package will call
+    | loadCodeAssist automatically to discover the project ID.
+    |
+    */
+
+    'project' => env('CLOUDCODE_PA_PROJECT', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Transport
     |--------------------------------------------------------------------------
     |
@@ -46,8 +60,16 @@ return [
     */
 
     'transport' => [
-        // Base URL for the v1internal API gateway
-        'base_url' => env('CLOUDCODE_PA_BASE_URL', 'https://cloudcode-pa.googleapis.com/v1internal'),
+        // Ordered list of v1internal endpoints for fallback routing.
+        // On 429 (rate limited), the next endpoint is tried automatically.
+        // Each domain has an independent quota pool.
+        'endpoints' => [
+            'https://daily-cloudcode-pa.googleapis.com/v1internal',   // Antigravity — primary
+            'https://cloudcode-pa.googleapis.com/v1internal',          // Gemini CLI — fallback
+        ],
+
+        // Legacy single URL (overrides endpoints if set)
+        'base_url' => env('CLOUDCODE_PA_BASE_URL', ''),
 
         // Request timeout in seconds for non-streaming requests
         'timeout' => (int) env('CLOUDCODE_PA_TIMEOUT', 30),
@@ -61,6 +83,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Cascade
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, the gateway cascades through the steps list on 429 (rate
+    | limited). Each step tries all configured endpoints before advancing to
+    | the next model. Only activates when the requested model matches the
+    | default_model — explicit model requests use endpoint fallback only.
+    |
+    */
+
+    'cascade' => [
+        'enabled' => (bool) env('CLOUDCODE_PA_CASCADE_ENABLED', true),
+        'steps' => [
+            'claude-opus-4',          // Partner — best quality (generateChat)
+            'gemini-3-pro-preview',   // Gemini 3 — bleeding edge (generateContent)
+            'gemini-3-flash-preview', // Gemini 3 — fast bleeding edge (generateContent)
+            'gemini-2.5-pro',         // Gemini 2.5 — stable high quality (generateContent)
+            'gemini-2.5-flash',       // Gemini 2.5 — stable fast fallback (generateContent)
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Models
     |--------------------------------------------------------------------------
     |
@@ -68,27 +113,36 @@ return [
     | Add new models here — no code changes required. The ModelRegistry
     | singleton reads this array at boot and resolves aliases at runtime.
     |
+    | Partner models (claude-*, gpt-*) are routed to generateChat automatically.
+    | Gemini models are routed to generateContent.
+    |
     */
 
     // Default model aliases for laravel/ai Provider methods
-    'default_model' => env('CLOUDCODE_PA_DEFAULT_MODEL', 'gemini-2.0-flash'),
-    'cheapest_model' => env('CLOUDCODE_PA_CHEAPEST_MODEL', 'gemini-2.0-flash-lite'),
-    'smartest_model' => env('CLOUDCODE_PA_SMARTEST_MODEL', 'gemini-3.1-pro-high'),
+    'default_model' => env('CLOUDCODE_PA_DEFAULT_MODEL', 'claude-opus-4'),
+    'cheapest_model' => env('CLOUDCODE_PA_CHEAPEST_MODEL', 'gemini-2.5-flash'),
+    'smartest_model' => env('CLOUDCODE_PA_SMARTEST_MODEL', 'claude-opus-4'),
 
     'models' => [
-        // Gemini 3.x — latest generation (GeminiCLI path)
-        'gemini-3.1-pro-high' => 'gemini-3.1-pro-high',
-        'gemini-3-pro' => 'gemini-3-pro',
-        'gemini-3-flash' => 'gemini-3-flash',
+        // Partner models — routed via generateChat + model_config_id
+        'claude-opus-4' => 'claude-opus-4',
+        'claude-sonnet-4' => 'claude-sonnet-4',
+        'claude-sonnet-4-5' => 'claude-sonnet-4-5',
+        'claude-haiku-4-5' => 'claude-haiku-4-5',
+        'gpt-oss-120b-medium' => 'gpt-oss-120b-medium',
+        'gpt-4-1' => 'gpt-4-1',
 
-        // Gemini 2.5 — previous generation
+        // Gemini 3.x — preview generation
+        'gemini-3-pro-preview' => 'gemini-3-pro-preview',
+        'gemini-3-flash-preview' => 'gemini-3-flash-preview',
+
+        // Gemini 2.5 — current stable generation
         'gemini-2.5-pro' => 'gemini-2.5-pro',
         'gemini-2.5-flash' => 'gemini-2.5-flash',
+        'gemini-2.5-flash-lite' => 'gemini-2.5-flash-lite',
 
-        // Gemini 2.0 — stable workhorses
+        // Gemini 2.0 — legacy (still available on v1internal)
         'gemini-2.0-flash' => 'gemini-2.0-flash',
-        'gemini-2.0-flash-lite' => 'gemini-2.0-flash-lite',
-        'gemini-2.0-flash-thinking' => 'gemini-2.0-flash-thinking',
     ],
 
     /*

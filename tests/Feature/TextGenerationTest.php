@@ -17,6 +17,9 @@ beforeEach(function (): void {
         'cloudcode-pa.auth.credentials_path',
         __DIR__.'/../Fixtures/credentials/valid-credentials.json',
     );
+
+    // Set a fake project ID so ProjectResolver doesn't call loadCodeAssist
+    config()->set('cloudcode-pa.project', 'test-project-id');
 });
 
 afterEach(function (): void {
