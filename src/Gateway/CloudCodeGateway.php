@@ -34,7 +34,6 @@ use Laravel\Ai\Streaming\Events\TextStart;
 use Laravel\Ai\Streaming\Events\ToolCall as ToolCallEvent;
 use Saloon\Exceptions\Request\FatalRequestException;
 use Saloon\Http\Response;
-use Ursamajeur\CloudCodePA\Config\CascadeConfig;
 use Ursamajeur\CloudCodePA\Config\ModelRouter;
 use Ursamajeur\CloudCodePA\Config\RpcType;
 use Ursamajeur\CloudCodePA\Contracts\ModelRouterInterface;
@@ -71,7 +70,7 @@ final class CloudCodeGateway implements Gateway
         private readonly ModelRouterInterface $modelRouter = new ModelRouter,
         private readonly ?ChatRequestBuilder $chatRequestBuilder = null,
         private readonly ResponseMapperInterface $chatResponseMapper = new ChatResponseMapper,
-        private readonly ?CascadeConfig $cascadeConfig = null,
+        private readonly CascadeDispatcher $cascadeDispatcher = new CascadeDispatcher,
         private readonly SSEParserInterface $sseParser = new SSEParser,
         private readonly int $streamTimeout = 120,
     ) {}
@@ -96,32 +95,18 @@ final class CloudCodeGateway implements Gateway
     ): TextResponse {
         $generationConfig = $this->buildGenerationConfig($options);
 
-        // Determine cascade steps: full cascade for default model, single step for explicit
-        $steps = $this->cascadeConfig !== null && $this->cascadeConfig->shouldCascade($model)
-            ? $this->cascadeConfig->steps
-            : [$model];
+        [$response, $resolvedModel] = $this->cascadeDispatcher->dispatch(
+            $model,
+            fn (string $stepModel): Response => $this->sendForModel($stepModel, $messages, $instructions, $generationConfig, $tools),
+        );
 
-        $lastResponse = null;
-
-        foreach ($steps as $stepModel) {
-            $response = $this->sendForModel($stepModel, $messages, $instructions, $generationConfig, $tools);
-
-            if ($response->status() !== ApiException::HTTP_RATE_LIMITED) {
-                if ($response->failed()) {
-                    $this->handleErrorResponse($response->status(), $response->body(), $stepModel);
-                }
-
-                $result = $this->mapResponse($stepModel, $response->body());
-
-                return $this->buildTextResponse($result, $stepModel, $messages, $tools);
-            }
-
-            $lastResponse = $response;
+        if ($response->failed()) {
+            $this->handleErrorResponse($response->status(), $response->body(), $resolvedModel);
         }
 
-        // All cascade steps exhausted with 429
-        /** @var Response $lastResponse */
-        $this->handleErrorResponse($lastResponse->status(), $lastResponse->body(), $steps[count($steps) - 1]);
+        $result = $this->mapResponse($resolvedModel, $response->body());
+
+        return $this->buildTextResponse($result, $resolvedModel, $messages, $tools);
     }
 
     /**
@@ -167,15 +152,7 @@ final class CloudCodeGateway implements Gateway
 
         $request = new StreamContentRequest($envelope, $this->streamTimeout);
 
-        try {
-            $response = $this->connector->sendWithFallback($request);
-        } catch (FatalRequestException $e) {
-            $message = $e->getMessage();
-            if (str_contains(strtolower($message), 'timeout') || str_contains(strtolower($message), 'timed out')) {
-                throw TransportException::timeout($e);
-            }
-            throw TransportException::connectionFailed($e);
-        }
+        $response = $this->sendRequest($request);
 
         if ($response->failed()) {
             $this->handleErrorResponse($response->status(), $response->body(), $model);
@@ -318,6 +295,26 @@ final class CloudCodeGateway implements Gateway
         throw CloudCodeException::notImplemented('generateTranscription()');
     }
 
+    // ── Transport ────────────────────────────────────────────────────
+
+    /**
+     * Send a Saloon request through the connector, normalising transport errors.
+     *
+     * @throws TransportException
+     */
+    private function sendRequest(\Saloon\Http\Request $request): Response
+    {
+        try {
+            return $this->connector->sendWithFallback($request);
+        } catch (FatalRequestException $e) {
+            $message = $e->getMessage();
+            if (str_contains(strtolower($message), 'timeout') || str_contains(strtolower($message), 'timed out')) {
+                throw TransportException::timeout($e);
+            }
+            throw TransportException::connectionFailed($e);
+        }
+    }
+
     // ── RPC dispatch ────────────────────────────────────────────────
 
     /**
@@ -343,15 +340,7 @@ final class CloudCodeGateway implements Gateway
             RpcType::GenerateContent => $this->buildContentRequest($model, $messages, $instructions, $generationConfig, $tools),
         };
 
-        try {
-            return $this->connector->sendWithFallback($request);
-        } catch (FatalRequestException $e) {
-            $message = $e->getMessage();
-            if (str_contains(strtolower($message), 'timeout') || str_contains(strtolower($message), 'timed out')) {
-                throw TransportException::timeout($e);
-            }
-            throw TransportException::connectionFailed($e);
-        }
+        return $this->sendRequest($request);
     }
 
     /**

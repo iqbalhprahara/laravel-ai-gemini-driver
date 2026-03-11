@@ -15,6 +15,7 @@ use Ursamajeur\CloudCodePA\Config\CascadeConfig;
 use Ursamajeur\CloudCodePA\Config\ModelRegistry;
 use Ursamajeur\CloudCodePA\Config\ModelRouter;
 use Ursamajeur\CloudCodePA\Contracts\CredentialStoreInterface;
+use Ursamajeur\CloudCodePA\Gateway\CascadeDispatcher;
 use Ursamajeur\CloudCodePA\Gateway\CloudCodeGateway;
 use Ursamajeur\CloudCodePA\Gateway\CloudCodeRerankingGateway;
 use Ursamajeur\CloudCodePA\Parsing\ChatRequestBuilder;
@@ -128,10 +129,12 @@ final class CloudCodeServiceProvider extends ServiceProvider
             /** @var list<string> $cascadeSteps */
             $cascadeSteps = (array) config('cloudcode-pa.cascade.steps', []);
 
-            $cascadeConfig = new CascadeConfig(
-                enabled: (bool) config('cloudcode-pa.cascade.enabled', true),
-                steps: $cascadeSteps,
-                triggerModel: $defaultModel,
+            $cascadeDispatcher = new CascadeDispatcher(
+                config: new CascadeConfig(
+                    enabled: (bool) config('cloudcode-pa.cascade.enabled', true),
+                    steps: $cascadeSteps,
+                    triggerModel: $defaultModel,
+                ),
             );
 
             $gateway = new CloudCodeGateway(
@@ -141,7 +144,7 @@ final class CloudCodeServiceProvider extends ServiceProvider
                 modelRouter: new ModelRouter,
                 chatRequestBuilder: $chatRequestBuilder,
                 chatResponseMapper: new ChatResponseMapper,
-                cascadeConfig: $cascadeConfig,
+                cascadeDispatcher: $cascadeDispatcher,
                 streamTimeout: (int) config('cloudcode-pa.transport.stream_timeout', 120),
             );
 
