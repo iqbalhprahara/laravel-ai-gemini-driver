@@ -1,6 +1,6 @@
 {
     "name": "ursamajeur/laravel-ai-gemini-driver",
-    "description": "Laravel AI SDK custom provider exposing Google's CloudCode-PA v1internal API",
+    "description": "Laravel AI provider that proxies Gemini CLI and Antigravity endpoints",
     "type": "library",
     "license": "MIT",
     "keywords": [
