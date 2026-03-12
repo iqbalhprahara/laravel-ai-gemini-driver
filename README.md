@@ -2,11 +2,16 @@
 
 A [Laravel AI](https://github.com/laravel/ai) provider that proxies [Gemini CLI](https://github.com/google-gemini/gemini-cli) and Antigravity endpoints to access Google's CloudCode-PA v1internal API. Use Gemini, Claude, and GPT models through a single unified interface with automatic rate-limit cascading, multi-endpoint fallback, and SSE streaming.
 
+> [!WARNING]
+> **Use at Your Own Risk**
+>
+> This package accesses Google's internal CloudCode-PA API through undocumented endpoints using OAuth credentials intended for Gemini CLI. This is **not an officially supported method** of accessing these models. Using this package may violate Google's Terms of Service and **could result in your Google account being suspended or banned**. The authors accept no responsibility for any consequences arising from its use.
+
 ## Requirements
 
-- PHP 8.2+
-- Laravel 11, 12, or 13
-- [Laravel AI](https://github.com/laravel/ai) ^0.1 (pre-release — expect breaking changes)
+- PHP 8.3+
+- Laravel 12 or 13
+- [Laravel AI](https://github.com/laravel/ai) ^0.1 | ^0.2 (pre-release — expect breaking changes)
 - OAuth credentials JSON produced by [Gemini CLI](https://github.com/google-gemini/gemini-cli)
 
 ## Installation
